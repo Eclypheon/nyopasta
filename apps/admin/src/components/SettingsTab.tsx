@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import QRCode from 'qrcode';
 import {
   DaySchedule,
   DayOfWeek,
@@ -7,6 +8,8 @@ import {
   DEFAULT_DAY_SCHEDULES,
   DEFAULT_STORE_SETTINGS,
   isStoreCurrentlyOpen,
+  generatePayNowPayload,
+  formatPayNowPhone,
   api,
 } from '@nyopasta/shared';
 import {
@@ -19,6 +22,8 @@ import {
   Building2,
   RefreshCw,
   ShoppingBag,
+  QrCode as QrIcon,
+  Phone,
 } from 'lucide-react';
 
 interface SettingsTabProps {
@@ -46,6 +51,12 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       : DEFAULT_DAY_SCHEDULES;
   });
 
+  const [payNowType, setPayNowType] = useState<'mobile' | 'uen'>(
+    storeSettings.payNowType || (storeSettings.payNowMobile ? 'mobile' : 'uen')
+  );
+  const [payNowMobile, setPayNowMobile] = useState(
+    storeSettings.payNowMobile || '92258003'
+  );
   const [payNowUen, setPayNowUen] = useState(storeSettings.payNowUen || '202300000A');
   const [payNowRecipientName, setPayNowRecipientName] = useState(
     storeSettings.payNowRecipientName || 'NYO PASTA'
@@ -59,6 +70,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const [isManuallyClosed, setIsManuallyClosed] = useState(
     Boolean(storeSettings.isManuallyClosed)
   );
+  const [previewQrUrl, setPreviewQrUrl] = useState<string>('');
 
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
@@ -67,6 +79,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     if (storeSettings.schedule && storeSettings.schedule.length > 0) {
       setSchedule(storeSettings.schedule);
     }
+    setPayNowType(storeSettings.payNowType || (storeSettings.payNowMobile ? 'mobile' : 'uen'));
+    setPayNowMobile(storeSettings.payNowMobile || '92258003');
     setPayNowUen(storeSettings.payNowUen || '202300000A');
     setPayNowRecipientName(storeSettings.payNowRecipientName || 'NYO PASTA');
     setTakeawayFee(storeSettings.takeawayFeePerItem ?? 0.3);
@@ -74,10 +88,32 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     setIsManuallyClosed(Boolean(storeSettings.isManuallyClosed));
   }, [storeSettings]);
 
+  // Generate live sample QR code for preview
+  useEffect(() => {
+    try {
+      const payload = generatePayNowPayload({
+        proxyType: payNowType,
+        proxyValue: payNowType === 'mobile' ? (payNowMobile || '92258003') : (payNowUen || '202300000A'),
+        merchantName: payNowRecipientName || 'NYO PASTA',
+        amount: 10.00,
+        reference: 'TEST-001',
+      });
+      QRCode.toDataURL(payload, {
+        width: 240,
+        margin: 2,
+        color: { dark: '#172554', light: '#FFFFFF' },
+      }).then(setPreviewQrUrl).catch(() => {});
+    } catch {
+      // Ignore preview generation errors
+    }
+  }, [payNowType, payNowMobile, payNowUen, payNowRecipientName]);
+
   // Current draft settings object to compute live status
   const currentDraftSettings: StoreSettings = {
     ...storeSettings,
     schedule,
+    payNowType,
+    payNowMobile,
     payNowUen,
     payNowRecipientName,
     takeawayFeePerItem: takeawayFee,
@@ -165,6 +201,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const handleResetToDefaults = () => {
     if (window.confirm('Reset schedule to reference defaults (Mon/Thu closed, Tue/Wed/Fri 10am-2pm & 6pm-9pm, Sat 9am-2pm & 6pm-9pm, Sun 9am-2pm)?')) {
       setSchedule(DEFAULT_DAY_SCHEDULES);
+      setPayNowType(DEFAULT_STORE_SETTINGS.payNowType || 'mobile');
+      setPayNowMobile(DEFAULT_STORE_SETTINGS.payNowMobile || '92258003');
       setPayNowUen(DEFAULT_STORE_SETTINGS.payNowUen);
       setPayNowRecipientName(DEFAULT_STORE_SETTINGS.payNowRecipientName);
       setTakeawayFee(DEFAULT_STORE_SETTINGS.takeawayFeePerItem);
@@ -177,6 +215,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     try {
       await api.updateStoreSettings({
         schedule,
+        payNowType,
+        payNowMobile: payNowMobile.trim(),
         payNowUen: payNowUen.trim(),
         payNowRecipientName: payNowRecipientName.trim(),
         takeawayFeePerItem: Number(takeawayFee) || 0.3,
@@ -387,25 +427,77 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">
-              PayNow UEN
-            </label>
-            <input
-              type="text"
-              value={payNowUen}
-              onChange={(e) => setPayNowUen(e.target.value)}
-              placeholder="e.g. 202300000A"
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:border-terracotta"
-            />
-            <p className="text-[11px] text-gray-400 mt-1">
-              Displayed on customer PayNow checkout QR screen.
-            </p>
+        {/* PayNow Type Selection */}
+        <div>
+          <label className="block text-xs font-bold text-gray-700 mb-1.5">
+            PayNow Account Type
+          </label>
+          <div className="grid grid-cols-2 gap-2 max-w-sm">
+            <button
+              type="button"
+              onClick={() => setPayNowType('mobile')}
+              className={`p-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                payNowType === 'mobile'
+                  ? 'border-terracotta bg-terracotta/10 text-terracotta'
+                  : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <Phone className="w-3.5 h-3.5" />
+              <span>Personal Mobile</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPayNowType('uen')}
+              className={`p-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                payNowType === 'uen'
+                  ? 'border-terracotta bg-terracotta/10 text-terracotta'
+                  : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span>Corporate UEN</span>
+            </button>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {payNowType === 'mobile' ? (
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                PayNow Mobile Phone Number
+              </label>
+              <input
+                type="text"
+                value={payNowMobile}
+                onChange={(e) => setPayNowMobile(e.target.value)}
+                placeholder="e.g. 92258003"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:border-terracotta"
+              />
+              <p className="text-[11px] text-gray-400 mt-1">
+                Automatically formatted as {formatPayNowPhone(payNowMobile || '92258003')} in customer PayNow QR.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                PayNow UEN
+              </label>
+              <input
+                type="text"
+                value={payNowUen}
+                onChange={(e) => setPayNowUen(e.target.value)}
+                placeholder="e.g. 202300000A"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:border-terracotta"
+              />
+              <p className="text-[11px] text-gray-400 mt-1">
+                Displayed on customer PayNow checkout QR screen.
+              </p>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">
-              Recipient Name
+              Recipient Name (PayNow Registered Name)
             </label>
             <input
               type="text"
@@ -415,7 +507,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:border-terracotta"
             />
             <p className="text-[11px] text-gray-400 mt-1">
-              Verified business entity name for customer PayNow transfers.
+              Verified business or personal name for customer PayNow transfers.
             </p>
           </div>
 
@@ -449,10 +541,36 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:outline-none focus:border-terracotta"
             />
             <p className="text-[11px] text-gray-400 mt-1">
-              Leaves empty for no banner.
+              Leave blank to hide the banner.
             </p>
           </div>
         </div>
+
+        {/* Live PayNow QR Preview */}
+        {previewQrUrl && (
+          <div className="mt-3 p-3.5 bg-gray-50 rounded-xl border border-gray-200 flex flex-col sm:flex-row items-center gap-4">
+            <img
+              src={previewQrUrl}
+              alt="Test PayNow QR Preview"
+              className="w-28 h-28 rounded-lg bg-white p-1 border shadow-xs"
+            />
+            <div className="space-y-1 text-center sm:text-left">
+              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#7A1A74]/10 text-[#7A1A74] text-[10px] font-black uppercase">
+                <QrIcon className="w-3 h-3" /> Live QR Verification Preview
+              </div>
+              <h4 className="text-xs font-bold text-gray-900">
+                Test Scan with DBS PayLah!, OCBC, or UOB
+              </h4>
+              <p className="text-[11px] text-gray-500 max-w-md">
+                This preview generates a real EMVCo PayNow payload for{' '}
+                <strong className="text-gray-900">
+                  {payNowType === 'mobile' ? formatPayNowPhone(payNowMobile || '92258003') : payNowUen}
+                </strong>{' '}
+                ({payNowRecipientName}). Test scan it with your phone to verify it opens your bank transfer screen with the exact recipient name.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Save button at bottom of settings */}
         <div className="pt-3 border-t flex justify-end">
@@ -467,6 +585,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           </button>
         </div>
       </div>
+    </div>
     </div>
   );
 };

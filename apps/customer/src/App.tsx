@@ -19,6 +19,7 @@ import { OrderHistoryView } from './components/OrderHistoryView';
 import { OrderSuccessModal } from './components/OrderSuccessModal';
 import { ReorderBanner } from './components/ReorderBanner';
 import { AuthModal } from './components/AuthModal';
+import { PayNowModal } from './components/PayNowModal';
 
 function CustomerAppContent() {
   const [activeTab, setActiveTab] = useState<'menu' | 'loyalty' | 'orders'>('menu');
@@ -26,6 +27,7 @@ function CustomerAppContent() {
   const [selectedItemForModal, setSelectedItemForModal] = useState<MenuItem | null>(null);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
+  const [reopenPayNowOrder, setReopenPayNowOrder] = useState<Order | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>(INITIAL_MENU_ITEMS);
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -322,6 +324,20 @@ function CustomerAppContent() {
             setPlacedOrder(null);
             setActiveTab('loyalty');
           }}
+          onReopenPayNow={() => {
+            setReopenPayNowOrder(placedOrder);
+          }}
+        />
+      )}
+
+      {/* PayNow Reopen Modal */}
+      {reopenPayNowOrder && (
+        <PayNowModal
+          isOpen={Boolean(reopenPayNowOrder)}
+          order={reopenPayNowOrder}
+          storeSettings={storeSettings}
+          onClose={() => setReopenPayNowOrder(null)}
+          onConfirmPaid={() => setReopenPayNowOrder(null)}
         />
       )}
 

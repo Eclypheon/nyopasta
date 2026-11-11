@@ -172,6 +172,7 @@ async function run() {
   await ensureStringAttribute('store_settings', 'manualCloseReason', 256, false);
   await ensureStringAttribute('store_settings', 'bannerMessage', 256, false);
   await ensureStringAttribute('store_settings', 'scheduleJson', 5000, true);
+  await ensureStringAttribute('store_settings', 'payNowType', 16, false, 'mobile');
   await ensureStringAttribute('store_settings', 'payNowUen', 64, false, '202300000A');
   await ensureStringAttribute('store_settings', 'payNowRecipientName', 128, false, 'NYO PASTA');
   await ensureStringAttribute('store_settings', 'payNowMobile', 32, false);

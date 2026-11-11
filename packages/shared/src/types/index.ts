@@ -140,6 +140,7 @@ export interface StoreSettings {
   manualCloseReason?: string;
   bannerMessage?: string;
   schedule: DaySchedule[];
+  payNowType?: 'mobile' | 'uen';
   payNowUen: string;
   payNowRecipientName: string;
   payNowMobile?: string;

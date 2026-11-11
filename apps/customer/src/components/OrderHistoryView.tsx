@@ -1,13 +1,16 @@
-import { Clock, RotateCcw, Utensils, Package, CheckCircle, ChefHat } from 'lucide-react';
+import React, { useState } from 'react';
+import { Clock, RotateCcw, Utensils, Package, CheckCircle, ChefHat, QrCode as QrIcon } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { FulfillmentStatus } from '@nyopasta/shared';
+import { FulfillmentStatus, Order } from '@nyopasta/shared';
+import { PayNowModal } from './PayNowModal';
 
 interface OrderHistoryViewProps {
   onGoToMenu: () => void;
 }
 
 export const OrderHistoryView: React.FC<OrderHistoryViewProps> = ({ onGoToMenu }) => {
-  const { orders, lastOrder, reorderOrder } = useCart();
+  const { orders, lastOrder, reorderOrder, storeSettings } = useCart();
+  const [selectedPayNowOrder, setSelectedPayNowOrder] = useState<Order | null>(null);
 
   const getStatusBadge = (status: FulfillmentStatus) => {
     switch (status) {
@@ -151,17 +154,40 @@ export const OrderHistoryView: React.FC<OrderHistoryViewProps> = ({ onGoToMenu }
                 <span className="font-black text-navy text-sm">${order.total.toFixed(2)}</span>
               </div>
 
-              <button
-                onClick={() => reorderOrder(order)}
-                className="bg-cream hover:bg-cream-dark text-navy font-extrabold text-xs px-3 py-1.5 rounded-xl border border-cream-dark flex items-center gap-1 transition-colors"
-              >
-                <RotateCcw className="w-3 h-3 text-terracotta" />
-                <span>Reorder</span>
-              </button>
+              <div className="flex items-center gap-2">
+                {order.paymentMethod === 'paynow' && order.paymentStatus === 'unpaid' && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPayNowOrder(order)}
+                    className="bg-[#7A1A74]/10 hover:bg-[#7A1A74]/20 text-[#7A1A74] font-extrabold text-xs px-2.5 py-1.5 rounded-xl border border-[#7A1A74]/30 flex items-center gap-1 transition-colors"
+                  >
+                    <QrIcon className="w-3 h-3" />
+                    <span>PayNow QR</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => reorderOrder(order)}
+                  className="bg-cream hover:bg-cream-dark text-navy font-extrabold text-xs px-3 py-1.5 rounded-xl border border-cream-dark flex items-center gap-1 transition-colors"
+                >
+                  <RotateCcw className="w-3 h-3 text-terracotta" />
+                  <span>Reorder</span>
+                </button>
+              </div>
             </div>
           </div>
         ))}
       </div>
+
+      {selectedPayNowOrder && (
+        <PayNowModal
+          isOpen={Boolean(selectedPayNowOrder)}
+          order={selectedPayNowOrder}
+          storeSettings={storeSettings}
+          onClose={() => setSelectedPayNowOrder(null)}
+          onConfirmPaid={() => setSelectedPayNowOrder(null)}
+        />
+      )}
     </div>
   );
 };

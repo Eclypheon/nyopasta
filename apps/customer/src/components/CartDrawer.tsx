@@ -14,7 +14,8 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { PaymentMethod, Order } from '@nyopasta/shared';
+import { PaymentMethod, Order, formatPayNowPhone } from '@nyopasta/shared';
+import { PayNowModal } from './PayNowModal';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -55,8 +56,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('paynow');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [pendingPayNowOrder, setPendingPayNowOrder] = useState<Order | null>(null);
 
-  if (!isOpen) return null;
+  if (!isOpen && !pendingPayNowOrder) return null;
 
   const hasSoldOutItems = items.some(
     (item) => liveMenuItems.find((m) => m.id === item.menuItemId)?.isSoldOut
@@ -82,7 +84,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
     setErrorMsg(null);
     try {
       const order = await placeOrder(paymentMethod);
-      onOrderSuccess(order);
+      if (paymentMethod === 'paynow') {
+        setPendingPayNowOrder(order);
+      } else {
+        onOrderSuccess(order);
+      }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to place order. Please try again.');
     } finally {
@@ -457,9 +463,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
                 </div>
 
                 {paymentMethod === 'paynow' && (
-                  <div className="bg-cream/60 p-2.5 rounded-xl border border-cream-dark text-[11px] space-y-0.5">
-                    <p className="font-bold text-navy">NYO Pasta PayNow UEN: 202300000A</p>
-                    <p className="text-navy/70">Scan QR on confirmation screen or transfer via UEN.</p>
+                  <div className="bg-[#7A1A74]/10 p-2.5 rounded-xl border border-[#7A1A74]/20 text-[11px] space-y-0.5">
+                    <p className="font-bold text-[#7A1A74]">
+                      PayNow to: {storeSettings.payNowMobile ? formatPayNowPhone(storeSettings.payNowMobile) : '92258003'} ({storeSettings.payNowRecipientName || 'NYO PASTA'})
+                    </p>
+                    <p className="text-navy/70">Dynamic QR code with exact amount and order reference generated on checkout.</p>
                   </div>
                 )}
               </div>
@@ -543,6 +551,24 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
           </div>
         )}
       </div>
+
+      {pendingPayNowOrder && (
+        <PayNowModal
+          isOpen={Boolean(pendingPayNowOrder)}
+          order={pendingPayNowOrder}
+          storeSettings={storeSettings}
+          onClose={() => {
+            const completed = pendingPayNowOrder;
+            setPendingPayNowOrder(null);
+            onOrderSuccess(completed);
+          }}
+          onConfirmPaid={() => {
+            const completed = pendingPayNowOrder;
+            setPendingPayNowOrder(null);
+            onOrderSuccess(completed);
+          }}
+        />
+      )}
     </div>
   );
 };

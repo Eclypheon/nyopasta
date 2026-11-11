@@ -404,6 +404,7 @@ export const api = {
         manualCloseReason: doc.manualCloseReason,
         bannerMessage: doc.bannerMessage,
         schedule: JSON.parse(doc.scheduleJson),
+        payNowType: doc.payNowType || (doc.payNowMobile ? 'mobile' : 'uen'),
         payNowUen: doc.payNowUen,
         payNowRecipientName: doc.payNowRecipientName,
         payNowMobile: doc.payNowMobile,
@@ -425,6 +426,7 @@ export const api = {
       if (settings.manualCloseReason !== undefined) payload.manualCloseReason = settings.manualCloseReason;
       if (settings.bannerMessage !== undefined) payload.bannerMessage = settings.bannerMessage;
       if (settings.schedule !== undefined) payload.scheduleJson = JSON.stringify(settings.schedule);
+      if (settings.payNowType !== undefined) payload.payNowType = settings.payNowType;
       if (settings.payNowUen !== undefined) payload.payNowUen = settings.payNowUen;
       if (settings.payNowRecipientName !== undefined) payload.payNowRecipientName = settings.payNowRecipientName;
       if (settings.payNowMobile !== undefined) payload.payNowMobile = settings.payNowMobile;
@@ -438,6 +440,7 @@ export const api = {
         manualCloseReason: doc.manualCloseReason,
         bannerMessage: doc.bannerMessage,
         schedule: JSON.parse(doc.scheduleJson),
+        payNowType: doc.payNowType || (doc.payNowMobile ? 'mobile' : 'uen'),
         payNowUen: doc.payNowUen,
         payNowRecipientName: doc.payNowRecipientName,
         payNowMobile: doc.payNowMobile,

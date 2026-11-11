@@ -1,17 +1,19 @@
 import React from 'react';
-import { CheckCircle2, Award, Utensils, Package } from 'lucide-react';
+import { CheckCircle2, Award, Utensils, Package, QrCode as QrIcon } from 'lucide-react';
 import { Order } from '@nyopasta/shared';
 
 interface OrderSuccessModalProps {
   order: Order;
   onClose: () => void;
   onGoToLoyalty: () => void;
+  onReopenPayNow?: () => void;
 }
 
 export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
   order,
   onClose,
   onGoToLoyalty,
+  onReopenPayNow,
 }) => {
   return (
     <div className="fixed inset-0 z-50 bg-navy/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
@@ -81,6 +83,16 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
 
         {/* Action Buttons */}
         <div className="space-y-2">
+          {order.paymentMethod === 'paynow' && order.paymentStatus === 'unpaid' && onReopenPayNow && (
+            <button
+              onClick={onReopenPayNow}
+              className="w-full bg-[#7A1A74] hover:bg-[#63145e] active:scale-98 text-white font-extrabold text-xs py-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all"
+            >
+              <QrIcon className="w-4 h-4" />
+              <span>View PayNow QR Code Again</span>
+            </button>
+          )}
+
           {order.stampsEarned > 0 && (
             <button
               onClick={() => {

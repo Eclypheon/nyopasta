@@ -361,6 +361,8 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   manualCloseReason: '',
   bannerMessage: '',
   schedule: DEFAULT_DAY_SCHEDULES,
+  payNowType: 'mobile',
+  payNowMobile: '92258003',
   payNowUen: '202300000A',
   payNowRecipientName: 'NYO PASTA',
   takeawayFeePerItem: 0.3,
