@@ -17,6 +17,7 @@ if (!PROJECT_ID || !API_KEY) {
 
 console.log(`Connecting to Appwrite Cloud at ${ENDPOINT}...`);
 console.log(`Project ID: ${PROJECT_ID}`);
+console.log(`API Key: ${API_KEY.substring(0, 8)}... (length ${API_KEY.length})`);
 
 const client = new Client()
   .setEndpoint(ENDPOINT)
@@ -190,6 +191,17 @@ async function ensureCollection(id, name, permissions) {
       console.log(`Creating collection "${id}" (${name})...`);
       await databases.createCollection(DB_ID, id, name, permissions);
       console.log(`Collection "${id}" created.`);
+    } else if (err.message && (err.message.includes('collections.read') || err.message.includes('collections.write'))) {
+      console.error('\n⚠️ API Key Missing Granular Database Scopes:');
+      console.error('Your API key has database permissions, but is missing collection permissions.');
+      console.error('In Appwrite Console > Project Settings > API Keys > edit your key:');
+      console.error('Under "Database", make sure these individual sub-scopes are checked:');
+      console.error('  ✓ Collections (collections.read, collections.write)');
+      console.error('  ✓ Attributes  (attributes.read, attributes.write)');
+      console.error('  ✓ Documents   (documents.read, documents.write)');
+      console.error('  ✓ Indexes     (indexes.read, indexes.write)');
+      console.error('Then click "Update" at the bottom of the modal to save.');
+      throw err;
     } else {
       throw err;
     }
