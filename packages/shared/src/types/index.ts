@@ -93,6 +93,14 @@ export interface MilestoneStatus {
   stamp12: boolean;
 }
 
+export interface AuthUser {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  isGuest?: boolean;
+}
+
 export interface UserProfile {
   id: string;
   authUserId: string;

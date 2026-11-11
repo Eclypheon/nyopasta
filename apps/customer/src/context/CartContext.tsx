@@ -7,13 +7,26 @@ import {
   FulfillmentType,
   PaymentMethod,
   StoreSettings,
+  AuthUser,
   DEFAULT_STORE_SETTINGS,
   LOYALTY_MILESTONES,
   isStoreCurrentlyOpen,
   api,
 } from '@nyopasta/shared';
 
-const DEFAULT_USER_ID = 'user_alex_7729';
+const EMPTY_PROFILE: UserProfile = {
+  id: '',
+  authUserId: '',
+  name: 'Guest Customer',
+  role: 'customer',
+  currentStampCount: 0,
+  completedCardsCount: 0,
+  milestoneRedemptions: { stamp4: false, stamp8: false, stamp12: false },
+  stampHistory: [],
+  totalOrdersCount: 0,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
 
 interface CartContextValue {
   items: CartItem[];
@@ -21,6 +34,8 @@ interface CartContextValue {
   customerName: string;
   customerContact: string;
   isGuest: boolean;
+  currentUser: AuthUser | null;
+  isAuthModalOpen: boolean;
   appliedMilestoneReward: 4 | 8 | 12 | null;
   profile: UserProfile;
   orders: Order[];
@@ -36,6 +51,7 @@ interface CartContextValue {
   total: number;
   totalItemCount: number;
   setIsCartOpen: (open: boolean) => void;
+  setIsAuthModalOpen: (open: boolean) => void;
   addItem: (item: CartItem) => void;
   updateItemQuantity: (id: string, delta: number) => void;
   removeItem: (id: string) => void;
@@ -43,6 +59,9 @@ interface CartContextValue {
   setFulfillmentType: (type: FulfillmentType) => void;
   setAppliedMilestoneReward: (reward: 4 | 8 | 12 | null) => void;
   setCustomerInfo: (name: string, contact: string, isGuest: boolean) => void;
+  loginAsGuest: () => void;
+  handleAuthSuccess: (user: AuthUser) => Promise<void>;
+  logout: () => Promise<void>;
   reorderOrder: (order: Order) => void;
   refreshProfile: () => Promise<void>;
   updateStampsDelta: (delta: number, description: string) => Promise<void>;
@@ -65,9 +84,44 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType>('dine_in');
   const [appliedMilestoneReward, setAppliedMilestoneReward] = useState<4 | 8 | 12 | null>(null);
-  const [customerName, setCustomerName] = useState('Alex Tan');
-  const [customerContact, setCustomerContact] = useState('91234567');
-  const [isGuest, setIsGuest] = useState(false);
+
+  // Authentication State
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
+    try {
+      const saved = localStorage.getItem('nyo_auth_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [isGuest, setIsGuest] = useState<boolean>(() => {
+    return localStorage.getItem('nyo_guest_mode') === 'true';
+  });
+
+  // If user is neither logged in nor a guest, display the entry login/oauth modal
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(() => {
+    const hasUser = Boolean(localStorage.getItem('nyo_auth_user'));
+    const guestActive = localStorage.getItem('nyo_guest_mode') === 'true';
+    return !hasUser && !guestActive;
+  });
+
+  const [customerName, setCustomerName] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('nyo_auth_user');
+      if (savedUser) return JSON.parse(savedUser).name || 'Member';
+    } catch {}
+    return 'Guest Customer';
+  });
+
+  const [customerContact, setCustomerContact] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('nyo_auth_user');
+      if (savedUser) return JSON.parse(savedUser).phone || '';
+    } catch {}
+    return '';
+  });
+
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS);
 
@@ -76,37 +130,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const saved = localStorage.getItem('nyo_customer_profile');
       if (saved) return JSON.parse(saved);
     } catch {}
-    return {
-      id: `prof_${DEFAULT_USER_ID}`,
-      authUserId: DEFAULT_USER_ID,
-      name: 'Alex Tan',
-      phone: '91234567',
-      role: 'customer',
-      currentStampCount: 5,
-      completedCardsCount: 0,
-      milestoneRedemptions: { stamp4: false, stamp8: false, stamp12: false },
-      stampHistory: [
-        {
-          id: 'evt_init_1',
-          type: 'order',
-          stamps: 3,
-          balanceAfter: 3,
-          description: 'Purchased 3 mains (Order NYO-001)',
-          timestamp: new Date(Date.now() - 86400000 * 3).toISOString(),
-        },
-        {
-          id: 'evt_init_2',
-          type: 'order',
-          stamps: 2,
-          balanceAfter: 5,
-          description: 'Purchased 2 mains (Order NYO-005)',
-          timestamp: new Date(Date.now() - 86400000).toISOString(),
-        },
-      ],
-      totalOrdersCount: 2,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    return EMPTY_PROFILE;
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
@@ -132,7 +156,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Save profile changes
   useEffect(() => {
-    localStorage.setItem('nyo_customer_profile', JSON.stringify(profile));
+    if (profile.id) {
+      localStorage.setItem('nyo_customer_profile', JSON.stringify(profile));
+    }
   }, [profile]);
 
   // Save orders list
@@ -168,18 +194,36 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isStoreOpen = storeStatus.isOpen;
   const storeClosedReason = storeStatus.reason;
 
+  // Check current session on mount
+  useEffect(() => {
+    api.getCurrentUser().then((user) => {
+      if (user) {
+        if (user.isGuest) {
+          setIsGuest(true);
+          setCurrentUser(user);
+        } else {
+          setCurrentUser(user);
+          setIsGuest(false);
+          setCustomerName(user.name);
+          if (user.phone) setCustomerContact(user.phone);
+          api.getUserProfile(user.id).then(setProfile).catch(() => {});
+        }
+      }
+    });
+  }, []);
+
   // Live subscription to user profile (stamps, milestones, history)
   useEffect(() => {
-    if (isGuest) return;
-    const unsub = api.subscribeToProfile(DEFAULT_USER_ID, (serverProfile) => {
+    if (isGuest || !currentUser?.id) return;
+    const unsub = api.subscribeToProfile(currentUser.id, (serverProfile) => {
       if (serverProfile) {
         setProfile(serverProfile);
       }
     });
     return () => unsub();
-  }, [isGuest]);
+  }, [isGuest, currentUser?.id]);
 
-  // Live subscription to order statuses (received -> preparing -> ready -> fulfilled)
+  // Live subscription to order statuses
   useEffect(() => {
     const unsub = api.subscribeToOrders((allOrders) => {
       setOrders((prev) => {
@@ -208,9 +252,42 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsub();
   }, []);
 
-  const refreshProfile = async () => {
+  const loginAsGuest = () => {
+    const guestUser = api.loginAsGuest();
+    setIsGuest(true);
+    setCurrentUser(guestUser);
+    setCustomerName('Guest Customer');
+    setIsAuthModalOpen(false);
+  };
+
+  const handleAuthSuccess = async (authUser: AuthUser) => {
+    setCurrentUser(authUser);
+    setIsGuest(false);
+    setCustomerName(authUser.name || 'Member');
+    if (authUser.phone) setCustomerContact(authUser.phone);
+    setIsAuthModalOpen(false);
     try {
-      const p = await api.getUserProfile(DEFAULT_USER_ID);
+      const p = await api.getUserProfile(authUser.id);
+      setProfile(p);
+    } catch (e) {
+      console.warn('Failed to load profile on login:', e);
+    }
+  };
+
+  const logout = async () => {
+    await api.logout();
+    setCurrentUser(null);
+    setIsGuest(false);
+    setProfile(EMPTY_PROFILE);
+    setCustomerName('Guest Customer');
+    setCustomerContact('');
+    setIsAuthModalOpen(true);
+  };
+
+  const refreshProfile = async () => {
+    if (!currentUser?.id || isGuest) return;
+    try {
+      const p = await api.getUserProfile(currentUser.id);
       if (p) setProfile(p);
     } catch (err) {
       console.warn('refreshProfile error:', err);
@@ -219,7 +296,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addItem = (newItem: CartItem) => {
     setItems((prev) => {
-      // Find if an identical item exists (same menuItemId, isKidPortion, same add-ons, same special instructions)
       const existingIdx = prev.findIndex((i) => {
         if (i.menuItemId !== newItem.menuItemId) return false;
         if (i.isKidPortion !== newItem.isKidPortion) return false;
@@ -287,7 +363,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       alert(`Cannot reorder: ${storeClosedReason || 'The shop is currently closed.'}`);
       return;
     }
-    // Filter out any currently sold out items
     const availableItems = orderToReorder.items.filter((item) => {
       const live = liveMenuItems.find((m) => m.id === item.menuItemId);
       return live && !live.isSoldOut;
@@ -323,11 +398,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const total = Math.max(0, subtotal + takeawayFee - discountAmount);
 
-  // Manual stamp modification (for testing/demo)
+  // Manual stamp modification
   const updateStampsDelta = async (delta: number, description: string) => {
+    if (!currentUser?.id || isGuest) return;
     const newCount = Math.max(0, profile.currentStampCount + delta);
     const updated = await api.updateUserStamps(
-      DEFAULT_USER_ID,
+      currentUser.id,
       newCount,
       {
         type: 'manual_migration',
@@ -340,11 +416,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Direct milestone redemption
   const redeemMilestoneDirect = async (milestone: 4 | 8 | 12) => {
+    if (!currentUser?.id || isGuest) return;
     const key = `stamp${milestone}` as keyof typeof profile.milestoneRedemptions;
     const milestoneUpdates = { [key]: true };
     const label = LOYALTY_MILESTONES[key].label;
     const updated = await api.updateUserStamps(
-      DEFAULT_USER_ID,
+      currentUser.id,
       profile.currentStampCount,
       {
         type: 'redemption',
@@ -358,6 +435,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Reset loyalty card
   const resetLoyaltyCard = async () => {
+    if (!currentUser?.id || isGuest) return;
     const resetProfile: UserProfile = {
       ...profile,
       currentStampCount: 0,
@@ -401,7 +479,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .filter((i) => i.category === 'mains')
       .reduce((sum, i) => sum + i.quantity, 0);
 
-    const stampsEarned = isGuest ? 0 : mainsCount;
+    const isMember = !isGuest && Boolean(currentUser?.id);
+    const stampsEarned = isMember ? mainsCount : 0;
 
     let discountDescription = '';
     if (appliedMilestoneReward) {
@@ -410,10 +489,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const orderData = {
-      customerId: isGuest ? null : DEFAULT_USER_ID,
-      customerName: customerName || 'Guest Customer',
+      customerId: isMember ? currentUser!.id : null,
+      customerName: customerName || (isMember ? currentUser!.name : 'Guest Customer'),
       customerContact: customerContact || 'N/A',
-      isGuest,
+      isGuest: !isMember,
       items,
       fulfillmentType,
       takeawayFee,
@@ -431,8 +510,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const newOrder = await api.createOrder(orderData);
 
-    // Update stamps and milestone redemptions if applicable
-    if (!isGuest) {
+    // Update stamps and milestone redemptions if member
+    if (isMember && currentUser?.id) {
       let milestoneUpdates: Partial<typeof profile.milestoneRedemptions> | undefined;
       if (appliedMilestoneReward) {
         const key = `stamp${appliedMilestoneReward}` as keyof typeof profile.milestoneRedemptions;
@@ -445,7 +524,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         : `Order ${newOrder.orderNumber} placed`;
 
       const updatedProfile = await api.updateUserStamps(
-        DEFAULT_USER_ID,
+        currentUser.id,
         newStampCount,
         {
           type: 'order',
@@ -477,6 +556,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         customerName,
         customerContact,
         isGuest,
+        currentUser,
+        isAuthModalOpen,
         appliedMilestoneReward,
         profile,
         orders,
@@ -492,6 +573,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         total,
         totalItemCount,
         setIsCartOpen,
+        setIsAuthModalOpen,
         addItem,
         updateItemQuantity,
         removeItem,
@@ -499,6 +581,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setFulfillmentType,
         setAppliedMilestoneReward,
         setCustomerInfo,
+        loginAsGuest,
+        handleAuthSuccess,
+        logout,
         reorderOrder,
         refreshProfile,
         updateStampsDelta,

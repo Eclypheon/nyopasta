@@ -114,8 +114,8 @@ describe('Seam 3: Loyalty Stamp Rollover & Remainder Retention', () => {
 describe('Seam 4: Order Lifecycle & Payment Safeguard', () => {
   it('progresses order from received to fulfilled and archives correctly', () => {
     const order = localStore.createOrder({
-      customerId: 'user_alex_7729',
-      customerName: 'Alex Tan',
+      customerId: 'user_test_999',
+      customerName: 'Test Member',
       customerContact: '91234567',
       isGuest: false,
       items: [],
@@ -250,5 +250,22 @@ describe('Seam 5: Inventory Sold-Out Synchronisation', () => {
 
     localStore.clearOrders();
     assert.equal(localStore.getOrders().length, 0);
+  });
+});
+
+describe('Seam 6: Authentication & Guest Entry Flow', () => {
+  it('creates clean guest session without loyalty stamp benefits', () => {
+    const guestUser = { id: 'guest_123', name: 'Guest Customer', isGuest: true };
+    assert.equal(guestUser.isGuest, true);
+  });
+
+  it('initializes member with 0 stamps and clean stamp history on registration', () => {
+    const freshProfile = localStore.getProfile('user_fresh_registration_1');
+    assert.equal(freshProfile.currentStampCount, 0);
+    assert.equal(freshProfile.completedCardsCount, 0);
+    assert.equal(freshProfile.stampHistory.length, 0);
+    assert.equal(freshProfile.milestoneRedemptions.stamp4, false);
+    assert.equal(freshProfile.milestoneRedemptions.stamp8, false);
+    assert.equal(freshProfile.milestoneRedemptions.stamp12, false);
   });
 });

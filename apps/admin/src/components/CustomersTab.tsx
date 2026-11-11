@@ -72,9 +72,17 @@ export function CustomersTab({ onSelectCustomerForCredit }: CustomersTabProps) {
         <div className="bg-white rounded-2xl p-8 text-center text-xs text-gray-400 border">
           Loading customer records...
         </div>
+      ) : profiles.length === 0 ? (
+        <div className="bg-white rounded-2xl p-8 text-center text-xs text-gray-500 border space-y-2">
+          <Users className="w-8 h-8 text-gray-300 mx-auto" />
+          <p className="font-bold text-gray-700">No member accounts registered yet</p>
+          <p className="text-gray-400 max-w-sm mx-auto">
+            Customers who sign up via the customer app or have physical cards migrated using the scanner will appear here with live statistics.
+          </p>
+        </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl p-8 text-center text-xs text-gray-500 border">
-          No customer records match your search.
+          No customer records match "{searchQuery}".
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

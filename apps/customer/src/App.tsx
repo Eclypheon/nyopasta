@@ -18,6 +18,7 @@ import { MemberQrModal } from './components/MemberQrModal';
 import { OrderHistoryView } from './components/OrderHistoryView';
 import { OrderSuccessModal } from './components/OrderSuccessModal';
 import { ReorderBanner } from './components/ReorderBanner';
+import { AuthModal } from './components/AuthModal';
 
 function CustomerAppContent() {
   const [activeTab, setActiveTab] = useState<'menu' | 'loyalty' | 'orders'>('menu');
@@ -37,6 +38,11 @@ function CustomerAppContent() {
     lastOrder,
     reorderOrder,
     storeSettings,
+    isGuest,
+    isAuthModalOpen,
+    setIsAuthModalOpen,
+    loginAsGuest,
+    handleAuthSuccess,
   } = useCart();
 
   // Real-time subscription to menu items
@@ -318,6 +324,15 @@ function CustomerAppContent() {
           }}
         />
       )}
+
+      {/* Welcome / Auth Gate Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        canDismiss={isGuest}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={handleAuthSuccess}
+        onContinueAsGuest={loginAsGuest}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Client, Account, Databases, ID, Query } from 'appwrite';
+import { Client, Account, Databases, ID, Query, OAuthProvider } from 'appwrite';
 import {
   MenuItem,
   Order,
@@ -6,6 +6,7 @@ import {
   UserProfile,
   StampEvent,
   MilestoneStatus,
+  AuthUser,
 } from '../types/index.js';
 import {
   INITIAL_MENU_ITEMS,
@@ -74,12 +75,6 @@ class LocalReactiveStore {
         if (savedProfiles) {
           const parsed = JSON.parse(savedProfiles);
           this.profiles = new Map(Object.entries(parsed));
-        }
-
-        if (this.profiles.size === 0) {
-          this.getProfile('user_alex_7729');
-          this.getProfile('usr_tan_ah_kow');
-          this.getProfile('usr_emily_lim');
         }
       } catch (e) {
         console.warn('Could not parse local store state', e);
@@ -206,66 +201,16 @@ class LocalReactiveStore {
 
   getProfile(userId: string): UserProfile {
     if (!this.profiles.has(userId)) {
-      const isAlex = userId === 'user_alex_7729';
-      const isTan = userId === 'usr_tan_ah_kow';
-      const isEmily = userId === 'usr_emily_lim';
-      const name = isAlex ? 'Alex Tan' : isTan ? 'Tan Ah Kow' : isEmily ? 'Emily Lim' : 'Loyal Customer';
-      const phone = isAlex ? '91234567' : isTan ? '91234567' : isEmily ? '98765432' : undefined;
-      const currentStampCount = isAlex ? 5 : isTan ? 5 : isEmily ? 10 : 0;
-      const totalOrdersCount = isAlex ? 2 : isTan ? 3 : isEmily ? 6 : 0;
-
       const newProfile: UserProfile = {
         id: `prof_${userId}`,
         authUserId: userId,
-        name,
-        phone,
+        name: 'Member',
         role: 'customer',
-        currentStampCount,
+        currentStampCount: 0,
         completedCardsCount: 0,
         milestoneRedemptions: { stamp4: false, stamp8: false, stamp12: false },
-        stampHistory: isAlex
-          ? [
-              {
-                id: 'evt_init_1',
-                type: 'order',
-                stamps: 3,
-                balanceAfter: 3,
-                description: 'Purchased 3 mains (Order NYO-001)',
-                timestamp: new Date(Date.now() - 86400000 * 3).toISOString(),
-              },
-              {
-                id: 'evt_init_2',
-                type: 'order',
-                stamps: 2,
-                balanceAfter: 5,
-                description: 'Purchased 2 mains (Order NYO-005)',
-                timestamp: new Date(Date.now() - 86400000).toISOString(),
-              },
-            ]
-          : isEmily
-          ? [
-              {
-                id: 'evt_init_emily',
-                type: 'manual_migration',
-                stamps: 10,
-                balanceAfter: 10,
-                description: 'Migrated 10 stamps from physical card',
-                timestamp: new Date(Date.now() - 86400000 * 2).toISOString(),
-              },
-            ]
-          : [],
-        totalOrdersCount,
-        lastOrderId: isAlex ? 'NYO-005' : isTan ? 'NYO-002' : isEmily ? 'NYO-004' : undefined,
-        lastOrderSummary: isAlex
-          ? '2x Prawn Cream Pasta'
-          : isTan
-          ? '1x Prawn Cream Pasta, 1x Carbonara'
-          : isEmily
-          ? '1x Burrata Pasta, 1x Truffle Fries'
-          : undefined,
-        lastOrderDate: isAlex
-          ? new Date(Date.now() - 86400000).toISOString()
-          : new Date(Date.now() - 86400000 * 2).toISOString(),
+        stampHistory: [],
+        totalOrdersCount: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -819,6 +764,169 @@ export const api = {
       });
     } catch (e) {
       return localStore.onProfileChange(userId, callback);
+    }
+  },
+
+  // --- Auth Methods ---
+  async loginWithGoogle(): Promise<void> {
+    if (!isCloudConnected) {
+      const mockUser: AuthUser = {
+        id: `google_${Date.now().toString().slice(-6)}`,
+        name: 'Google Member',
+        email: 'member@gmail.com',
+      };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('nyo_auth_user', JSON.stringify(mockUser));
+        localStorage.removeItem('nyo_guest_mode');
+      }
+      localStore.getProfile(mockUser.id);
+      return;
+    }
+
+    const redirectUrl = window.location.href.split('#')[0];
+    account.createOAuth2Session(OAuthProvider.Google, redirectUrl, redirectUrl);
+  },
+
+  async signupWithEmail(email: string, password: string, name: string, phone?: string): Promise<AuthUser> {
+    if (!isCloudConnected) {
+      const mockUser: AuthUser = {
+        id: `user_${Date.now().toString().slice(-6)}`,
+        name: name || 'Member',
+        email,
+        phone,
+      };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('nyo_auth_user', JSON.stringify(mockUser));
+        localStorage.removeItem('nyo_guest_mode');
+      }
+      const prof = localStore.getProfile(mockUser.id);
+      prof.name = mockUser.name;
+      prof.email = mockUser.email;
+      prof.phone = mockUser.phone;
+      return mockUser;
+    }
+
+    const userId = ID.unique();
+    await account.create(userId, email, password, name);
+    await account.createEmailPasswordSession(email, password);
+
+    // Create cloud profile record
+    await databases.createDocument(DB_ID, 'profiles', ID.unique(), {
+      userId,
+      name,
+      email,
+      phone: phone || '',
+      role: 'customer',
+      currentStampCount: 0,
+      completedCardsCount: 0,
+      milestonesRedeemedJson: JSON.stringify({ stamp4: false, stamp8: false, stamp12: false }),
+      stampHistoryJson: '[]',
+      totalOrdersCount: 0,
+    });
+
+    const user: AuthUser = { id: userId, name, email, phone };
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('nyo_auth_user', JSON.stringify(user));
+      localStorage.removeItem('nyo_guest_mode');
+    }
+    return user;
+  },
+
+  async loginWithEmail(email: string, password: string): Promise<AuthUser> {
+    if (!isCloudConnected) {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('nyo_auth_user') : null;
+      if (saved) {
+        const u = JSON.parse(saved);
+        localStorage.removeItem('nyo_guest_mode');
+        return u;
+      }
+      const mockUser: AuthUser = {
+        id: `user_${Date.now().toString().slice(-6)}`,
+        name: email.split('@')[0],
+        email,
+      };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('nyo_auth_user', JSON.stringify(mockUser));
+        localStorage.removeItem('nyo_guest_mode');
+      }
+      return mockUser;
+    }
+
+    await account.createEmailPasswordSession(email, password);
+    const acc = await account.get();
+    const user: AuthUser = { id: acc.$id, name: acc.name, email: acc.email, phone: acc.phone };
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('nyo_auth_user', JSON.stringify(user));
+      localStorage.removeItem('nyo_guest_mode');
+    }
+    return user;
+  },
+
+  async loginWithPhone(phone: string, password: string, name?: string): Promise<AuthUser> {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const phoneEmail = `${cleanPhone}@nyopasta.internal`;
+    try {
+      return await this.loginWithEmail(phoneEmail, password);
+    } catch {
+      return await this.signupWithEmail(phoneEmail, password, name || `Member ${cleanPhone.slice(-4)}`, phone);
+    }
+  },
+
+  loginAsGuest(): AuthUser {
+    const guestUser: AuthUser = {
+      id: `guest_${Date.now().toString().slice(-6)}`,
+      name: 'Guest Customer',
+      isGuest: true,
+    };
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('nyo_guest_mode', 'true');
+      localStorage.removeItem('nyo_auth_user');
+    }
+    return guestUser;
+  },
+
+  async getCurrentUser(): Promise<AuthUser | null> {
+    if (typeof window !== 'undefined' && localStorage.getItem('nyo_guest_mode') === 'true') {
+      return { id: 'guest', name: 'Guest Customer', isGuest: true };
+    }
+
+    if (!isCloudConnected) {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('nyo_auth_user');
+        if (saved) {
+          try {
+            return JSON.parse(saved);
+          } catch {}
+        }
+      }
+      return null;
+    }
+
+    try {
+      const acc = await account.get();
+      return {
+        id: acc.$id,
+        name: acc.name,
+        email: acc.email,
+        phone: acc.phone,
+      };
+    } catch {
+      return null;
+    }
+  },
+
+  async logout(): Promise<void> {
+    if (isCloudConnected) {
+      try {
+        await account.deleteSession('current');
+      } catch {}
+    }
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('nyo_auth_user');
+      localStorage.removeItem('nyo_guest_mode');
+      localStorage.removeItem('nyo_customer_profile');
+      localStorage.removeItem('nyo_cart_items');
+      localStorage.removeItem('nyo_last_order');
     }
   },
 };

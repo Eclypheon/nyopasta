@@ -8,7 +8,13 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
-  const { totalItemCount, isGuest, setCustomerInfo, customerName, customerContact } = useCart();
+  const {
+    totalItemCount,
+    isGuest,
+    currentUser,
+    setIsAuthModalOpen,
+    logout,
+  } = useCart();
   const logoUrl = `${import.meta.env.BASE_URL}logo.jpg`;
 
   const handleResetCache = () => {
@@ -17,8 +23,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
     }
   };
 
-  const toggleGuestMode = () => {
-    setCustomerInfo(customerName, customerContact, !isGuest);
+  const handleAuthPillClick = () => {
+    if (isGuest) {
+      setIsAuthModalOpen(true);
+    } else {
+      if (window.confirm(`Logged in as ${currentUser?.name || 'Member'}. Do you want to sign out?`)) {
+        logout();
+      }
+    }
   };
 
   return (
@@ -44,19 +56,21 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
             <h1 className="font-extrabold text-base sm:text-lg text-terracotta tracking-tight leading-none">NYO PASTA</h1>
             <button
               type="button"
-              onClick={toggleGuestMode}
-              title={isGuest ? 'Switch to Member Mode' : 'Switch to Guest Mode'}
-              className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1 transition-colors ${
-                isGuest ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' : 'bg-terracotta/10 text-terracotta border border-terracotta/20 hover:bg-terracotta/20'
+              onClick={handleAuthPillClick}
+              title={isGuest ? 'Sign in or create account to collect loyalty stamps' : 'Click to sign out'}
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 transition-colors ${
+                isGuest
+                  ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                  : 'bg-terracotta/10 text-terracotta border border-terracotta/20 hover:bg-terracotta/20'
               }`}
             >
               {isGuest ? (
                 <>
-                  <UserX className="w-2.5 h-2.5" /> Guest
+                  <UserX className="w-2.5 h-2.5" /> Guest · Sign In
                 </>
               ) : (
                 <>
-                  <UserCheck className="w-2.5 h-2.5" /> Member
+                  <UserCheck className="w-2.5 h-2.5" /> {currentUser?.name ? currentUser.name.split(' ')[0] : 'Member'}
                 </>
               )}
             </button>

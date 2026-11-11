@@ -13,9 +13,7 @@ export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ onOpenQrModal }) => {
     redeemMilestoneDirect,
     resetLoyaltyCard,
     isGuest,
-    setCustomerInfo,
-    customerName,
-    customerContact,
+    setIsAuthModalOpen,
   } = useCart();
 
   const [showHistory, setShowHistory] = useState(false);
@@ -35,7 +33,7 @@ export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ onOpenQrModal }) => {
             <p className="text-[11px] text-amber-800">Switch to Member mode to collect stamps and redeem rewards!</p>
           </div>
           <button
-            onClick={() => setCustomerInfo(customerName, customerContact, false)}
+            onClick={() => setIsAuthModalOpen(true)}
             className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3 py-1.5 rounded-xl shrink-0"
           >
             Join / Login

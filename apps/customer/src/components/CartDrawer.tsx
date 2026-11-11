@@ -49,6 +49,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
     isStoreOpen,
     storeClosedReason,
     storeSettings,
+    setIsAuthModalOpen,
   } = useCart();
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('paynow');
@@ -372,10 +373,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
                   </label>
                   <button
                     type="button"
-                    onClick={() => setCustomerInfo(customerName, customerContact, !isGuest)}
+                    onClick={() => {
+                      if (isGuest) {
+                        setIsAuthModalOpen(true);
+                      } else {
+                        setCustomerInfo(customerName, customerContact, true);
+                      }
+                    }}
                     className="text-[11px] font-bold text-terracotta hover:underline"
                   >
-                    {isGuest ? 'Switch to Member' : 'Ordering as Guest'}
+                    {isGuest ? 'Sign up / Sign in as Member' : 'Ordering as Guest'}
                   </button>
                 </div>
 
