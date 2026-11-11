@@ -1,0 +1,25 @@
+{
+  "name": "@nyopasta/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./assets/*": "./assets/*"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "dependencies": {
+    "appwrite": "^16.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

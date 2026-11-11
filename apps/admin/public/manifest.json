@@ -1,0 +1,16 @@
+{
+  "name": "NYO Pasta Kitchen & Admin",
+  "short_name": "NYO Admin",
+  "description": "Kitchen orders, stock, and loyalty management",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#172554",
+  "theme_color": "#172554",
+  "icons": [
+    {
+      "src": "/stamp-darkblue.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
