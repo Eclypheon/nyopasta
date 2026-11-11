@@ -3,11 +3,9 @@ import {
   Users,
   Search,
   Award,
-  ShoppingBag,
   Clock,
   PlusCircle,
   Ban,
-  Ticket,
   ChevronDown,
   ChevronUp,
   Trash2,
@@ -16,9 +14,8 @@ import {
   Phone,
   Mail,
   DollarSign,
-  AlertTriangle,
 } from 'lucide-react';
-import { api, UserProfile, Order } from '@nyopasta/shared';
+import { api, UserProfile, Order, deduplicateProfiles } from '@nyopasta/shared';
 
 interface CustomersTabProps {
   orders?: Order[];
@@ -49,7 +46,8 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
     setIsLoading(true);
     try {
       const all = await api.getAllProfiles();
-      setProfiles(all || []);
+      const deduped = deduplicateProfiles(all || []);
+      setProfiles(deduped);
     } catch (err) {
       console.warn('Error loading customer profiles:', err);
     } finally {
@@ -146,49 +144,53 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
     return map;
   }, [profiles, orders]);
 
-  const filtered = profiles.filter((p) => {
-    const q = searchQuery.toLowerCase();
-    return (
-      (p.name && p.name.toLowerCase().includes(q)) ||
-      (p.phone && p.phone.toLowerCase().includes(q)) ||
-      (p.authUserId && p.authUserId.toLowerCase().includes(q)) ||
-      (p.email && p.email.toLowerCase().includes(q))
-    );
-  });
+  const filtered = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    const list = profiles.filter((p) => {
+      if (!q) return true;
+      return (
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.phone && p.phone.toLowerCase().includes(q)) ||
+        (p.authUserId && p.authUserId.toLowerCase().includes(q)) ||
+        (p.email && p.email.toLowerCase().includes(q))
+      );
+    });
+    return deduplicateProfiles(list);
+  }, [profiles, searchQuery]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Top Header & Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-white p-3 rounded-xl border border-gray-200 shadow-2xs">
         <div>
-          <h2 className="font-extrabold text-base text-gray-900 flex items-center gap-2">
-            <Users className="w-5 h-5 text-terracotta" />
-            Customer Loyalty & Members Directory
+          <h2 className="font-extrabold text-sm text-gray-900 flex items-center gap-1.5">
+            <Users className="w-4 h-4 text-terracotta" />
+            Customer Directory
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Compact member list. Click to expand details, or hold/long-press row for quick actions.
+          <p className="text-[11px] text-gray-500 mt-0.5">
+            Compact member table. Name is frozen when scrolling horizontally. Tap row to expand details.
           </p>
         </div>
 
         {/* Search Bar */}
-        <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+        <div className="relative w-full sm:w-64">
+          <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2.5" />
           <input
             type="text"
             placeholder="Search name, phone, or ID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full text-xs border border-gray-300 rounded-xl pl-9 pr-3 py-2 bg-gray-50 focus:bg-white focus:outline-none focus:border-terracotta shadow-xs transition-colors"
+            className="w-full text-xs border border-gray-300 rounded-lg pl-8 pr-3 py-1.5 bg-gray-50 focus:bg-white focus:outline-none focus:border-terracotta shadow-2xs transition-colors"
           />
         </div>
       </div>
 
       {isLoading ? (
-        <div className="bg-white rounded-2xl p-8 text-center text-xs text-gray-400 border">
+        <div className="bg-white rounded-xl p-8 text-center text-xs text-gray-400 border">
           Loading customer records...
         </div>
       ) : profiles.length === 0 ? (
-        <div className="bg-white rounded-2xl p-8 text-center text-xs text-gray-500 border space-y-2">
+        <div className="bg-white rounded-xl p-8 text-center text-xs text-gray-500 border space-y-2">
           <Users className="w-8 h-8 text-gray-300 mx-auto" />
           <p className="font-bold text-gray-700">No member accounts registered yet</p>
           <p className="text-gray-400 max-w-sm mx-auto">
@@ -196,23 +198,26 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
           </p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl p-8 text-center text-xs text-gray-500 border">
+        <div className="bg-white rounded-xl p-8 text-center text-xs text-gray-500 border">
           No customer records match "{searchQuery}".
         </div>
       ) : (
-        /* Compact Users Table */
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
+        /* Compact Users Table with Sticky Frozen Name Column */
+        <div className="bg-white rounded-xl border border-gray-200 shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[620px] sm:min-w-full">
+            <table className="w-full text-left border-collapse min-w-[420px] sm:min-w-full">
               <thead>
-                <tr className="bg-gray-100/80 border-b border-gray-200 text-[11px] font-bold text-gray-600 uppercase tracking-wider select-none">
-                  <th className="py-2.5 px-3">Name</th>
-                  <th className="py-2.5 px-2 text-center w-20">Total Orders</th>
-                  <th className="py-2.5 px-2 text-center w-20">3.5 Sides</th>
-                  <th className="py-2.5 px-2 text-center w-20">4.5 Sides</th>
-                  <th className="py-2.5 px-2 text-center w-20">8.5 Main</th>
-                  <th className="py-2.5 px-3 text-center w-24">Current Stamps</th>
-                  <th className="py-2.5 px-2 text-center w-8"></th>
+                <tr className="bg-gray-100/90 border-b border-gray-200 text-[10px] font-bold text-gray-500 uppercase tracking-wider select-none">
+                  {/* Frozen Sticky Name Column (fits ~12 chars) */}
+                  <th className="sticky left-0 bg-gray-100 z-20 py-2 px-2 text-left w-[96px] min-w-[96px] max-w-[96px] border-r border-gray-200 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">
+                    Name
+                  </th>
+                  <th className="py-2 px-1 text-center w-14 min-w-[54px]">Orders</th>
+                  <th className="py-2 px-1 text-center w-14 min-w-[54px]">$3.5 Side</th>
+                  <th className="py-2 px-1 text-center w-14 min-w-[54px]">$4.5 Side</th>
+                  <th className="py-2 px-1 text-center w-14 min-w-[54px]">$8.5 Main</th>
+                  <th className="py-2 px-1.5 text-center w-20 min-w-[74px]">Stamps</th>
+                  <th className="py-2 px-1 text-center w-6 min-w-[24px]"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-xs">
@@ -227,7 +232,7 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
                   const lifetimeStamps = ((profile.completedCardsCount || 0) * 12) + (profile.currentStampCount || 0);
 
                   return (
-                    <React.Fragment key={profile.id}>
+                    <React.Fragment key={pId}>
                       {/* Compact Single Row per User */}
                       <tr
                         onClick={() => handleRowClick(profile)}
@@ -241,7 +246,7 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
                           e.preventDefault();
                           setLongPressUser(profile);
                         }}
-                        className={`transition-colors cursor-pointer select-none ${
+                        className={`transition-colors cursor-pointer select-none group ${
                           isExpanded
                             ? 'bg-amber-50/70'
                             : profile.isBlacklisted
@@ -249,15 +254,25 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
                             : 'hover:bg-gray-50'
                         }`}
                       >
-                        {/* Column 1: Name */}
-                        <td className="py-2 px-3">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-bold text-gray-900 text-xs truncate max-w-[150px] sm:max-w-none">
+                        {/* Column 1: Name (Frozen Sticky Left, fits ~12 chars) */}
+                        <td
+                          className={`sticky left-0 z-10 py-1 px-2 w-[96px] min-w-[96px] max-w-[96px] border-r border-gray-200/80 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] transition-colors ${
+                            isExpanded
+                              ? 'bg-[#fef9ee]'
+                              : profile.isBlacklisted
+                              ? 'bg-[#fff5f5]'
+                              : 'bg-white group-hover:bg-[#fafafa]'
+                          }`}
+                        >
+                          <div className="flex flex-col justify-center min-w-0">
+                            <span
+                              className="font-bold text-gray-900 text-[11px] truncate block leading-tight"
+                              title={profile.name || 'Member'}
+                            >
                               {profile.name || 'Member'}
                             </span>
                             {profile.isBlacklisted && (
-                              <span className="inline-flex items-center gap-0.5 bg-rose-100 text-rose-800 text-[10px] font-black px-1.5 py-0.2 rounded border border-rose-200">
-                                <Ban className="w-2.5 h-2.5 text-rose-600" />
+                              <span className="text-[9px] font-black text-rose-700 leading-none mt-0.5">
                                 Blocked
                               </span>
                             )}
@@ -265,14 +280,14 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
                         </td>
 
                         {/* Column 2: Total Orders */}
-                        <td className="py-2 px-2 text-center text-gray-800 font-bold">
+                        <td className="py-1 px-1 text-center text-gray-800 font-bold text-xs">
                           {stats.totalOrders}
                         </td>
 
                         {/* Column 3: 3.5 Sides */}
-                        <td className="py-2 px-2 text-center text-gray-700 font-medium">
+                        <td className="py-1 px-1 text-center text-gray-700 font-medium text-xs">
                           {profile.voucherSide350Count ? (
-                            <span className="bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded text-[11px]">
+                            <span className="bg-amber-100 text-amber-900 font-bold px-1.5 py-0.2 rounded text-[10px]">
                               {profile.voucherSide350Count}
                             </span>
                           ) : (
@@ -281,9 +296,9 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
                         </td>
 
                         {/* Column 4: 4.5 Sides */}
-                        <td className="py-2 px-2 text-center text-gray-700 font-medium">
+                        <td className="py-1 px-1 text-center text-gray-700 font-medium text-xs">
                           {profile.voucherSide450Count ? (
-                            <span className="bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded text-[11px]">
+                            <span className="bg-amber-100 text-amber-900 font-bold px-1.5 py-0.2 rounded text-[10px]">
                               {profile.voucherSide450Count}
                             </span>
                           ) : (
@@ -292,9 +307,9 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
                         </td>
 
                         {/* Column 5: 8.5 Main */}
-                        <td className="py-2 px-2 text-center text-gray-700 font-medium">
+                        <td className="py-1 px-1 text-center text-gray-700 font-medium text-xs">
                           {profile.voucherMeal850Count ? (
-                            <span className="bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded text-[11px]">
+                            <span className="bg-amber-100 text-amber-900 font-bold px-1.5 py-0.2 rounded text-[10px]">
                               {profile.voucherMeal850Count}
                             </span>
                           ) : (
@@ -303,15 +318,15 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
                         </td>
 
                         {/* Column 6: Current Stamp Count (x/12) */}
-                        <td className="py-2 px-3 text-center">
-                          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-900 font-black text-xs px-2 py-0.5 rounded-full border border-amber-200 shadow-2xs">
-                            <Award className="w-3 h-3 text-amber-600 shrink-0" />
+                        <td className="py-1 px-1.5 text-center">
+                          <span className="inline-flex items-center gap-0.5 bg-amber-50 text-amber-900 font-black text-[11px] px-1.5 py-0.5 rounded-md border border-amber-200">
+                            <Award className="w-2.5 h-2.5 text-amber-600 shrink-0" />
                             {profile.currentStampCount}/12
                           </span>
                         </td>
 
                         {/* Column 7: Expand Chevron */}
-                        <td className="py-2 px-2 text-center text-gray-400">
+                        <td className="py-1 px-1 text-center text-gray-400">
                           {isExpanded ? (
                             <ChevronUp className="w-3.5 h-3.5 mx-auto text-terracotta" />
                           ) : (
@@ -323,13 +338,13 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
                       {/* Expandable Details Section (2 Additional Rows) */}
                       {isExpanded && (
                         <tr className="bg-amber-50/30 border-b border-amber-100/60">
-                          <td colSpan={7} className="p-3 sm:p-4">
-                            <div className="space-y-3 bg-white p-3.5 rounded-xl border border-amber-200/80 shadow-xs">
+                          <td colSpan={7} className="p-2 sm:p-3">
+                            <div className="space-y-2.5 bg-white p-3 rounded-xl border border-amber-200/80 shadow-2xs">
                               {/* Expanded Row 1: ID, Phone, Email, Revenue, Lifetime Stamps */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2.5 pb-2.5 border-b border-gray-100 text-xs">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 pb-2 border-b border-gray-100 text-xs">
                                 {/* Unique Member ID */}
                                 <div className="space-y-0.5">
-                                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">
                                     Member ID
                                   </span>
                                   <div className="flex items-center gap-1">
@@ -339,7 +354,7 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
                                     <button
                                       type="button"
                                       onClick={(e) => handleCopyId(e, pId)}
-                                      className="p-1 text-gray-400 hover:text-terracotta rounded transition-colors"
+                                      className="p-0.5 text-gray-400 hover:text-terracotta rounded transition-colors"
                                       title="Copy Member ID"
                                     >
                                       {copiedId === pId ? (
@@ -353,7 +368,7 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
 
                                 {/* Phone Number */}
                                 <div className="space-y-0.5">
-                                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">
                                     Phone Number
                                   </span>
                                   <div className="flex items-center gap-1 text-gray-800 font-medium text-[11px]">
@@ -364,7 +379,7 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
 
                                 {/* Email Address */}
                                 <div className="space-y-0.5">
-                                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">
                                     Email Address
                                   </span>
                                   <div className="flex items-center gap-1 text-gray-800 font-medium text-[11px] truncate">
@@ -375,7 +390,7 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
 
                                 {/* Total Revenue */}
                                 <div className="space-y-0.5">
-                                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">
                                     Total Revenue
                                   </span>
                                   <div className="flex items-center gap-0.5 text-terracotta font-black text-xs">
@@ -386,7 +401,7 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
 
                                 {/* Lifetime Stamps */}
                                 <div className="space-y-0.5">
-                                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">
                                     Lifetime Stamps
                                   </span>
                                   <div className="text-gray-800 font-bold text-[11px]">
@@ -401,7 +416,7 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
                               </div>
 
                               {/* Expanded Row 2: Last Active, Most Recent Order, Actions */}
-                              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+                              <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 text-xs">
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-1.5 text-gray-600 text-[11px]">
                                     <Clock className="w-3 h-3 text-gray-400 shrink-0" />
@@ -439,7 +454,7 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
                                     <button
                                       type="button"
                                       onClick={() => onSelectCustomerForCredit(pId)}
-                                      className="px-3 py-1.5 bg-terracotta hover:bg-terracotta-dark text-white rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors"
+                                      className="px-2.5 py-1 bg-terracotta hover:bg-terracotta-dark text-white rounded-lg font-bold text-xs flex items-center gap-1 shadow-2xs transition-colors"
                                     >
                                       <PlusCircle className="w-3.5 h-3.5" />
                                       Credit Stamps
@@ -450,7 +465,7 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
                                     <button
                                       type="button"
                                       onClick={() => handleUnblacklist(pId)}
-                                      className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-bold transition-colors"
+                                      className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-bold transition-colors"
                                     >
                                       Remove Blacklist
                                     </button>
@@ -459,7 +474,7 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteUser(profile)}
-                                    className="px-2.5 py-1.5 bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 border border-gray-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+                                    className="px-2 py-1 bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 border border-gray-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
                                     title="Delete this member record"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />

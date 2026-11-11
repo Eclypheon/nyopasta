@@ -194,7 +194,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 p-4 max-w-4xl mx-auto w-full">
+      <main className="flex-1 p-2 sm:p-4 max-w-4xl mx-auto w-full">
         {activeTab === 'orders' && (
           <OrdersTab orders={orders} onOrderUpdated={refreshOrders} />
         )}

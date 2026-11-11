@@ -47,6 +47,57 @@ function clientInstance() {
 
 const DB_ID = 'nyopasta_db';
 
+export function deduplicateProfiles(profiles: UserProfile[]): UserProfile[] {
+  const map = new Map<string, UserProfile>();
+  for (const p of profiles) {
+    const cleanAuth = p.authUserId ? p.authUserId.replace(/^prof_/, '') : '';
+    const cleanId = p.id ? p.id.replace(/^prof_/, '') : '';
+    const emailKey = p.email ? `email:${p.email.toLowerCase().trim()}` : '';
+    const phoneKey = p.phone ? `phone:${p.phone.replace(/\D/g, '')}` : '';
+
+    let existingKey: string | undefined;
+    if (cleanAuth && map.has(cleanAuth)) existingKey = cleanAuth;
+    else if (cleanId && map.has(cleanId)) existingKey = cleanId;
+    else if (emailKey && map.has(emailKey)) existingKey = emailKey;
+    else if (phoneKey && map.has(phoneKey)) existingKey = phoneKey;
+
+    if (!existingKey) {
+      const primaryKey = cleanAuth || cleanId || emailKey || phoneKey || p.id;
+      const clone = { ...p };
+      map.set(primaryKey, clone);
+      if (cleanAuth) map.set(cleanAuth, clone);
+      if (cleanId) map.set(cleanId, clone);
+      if (emailKey) map.set(emailKey, clone);
+      if (phoneKey) map.set(phoneKey, clone);
+    } else {
+      const existing = map.get(existingKey)!;
+      // Merge records: prefer real human name over default 'Member'
+      if ((existing.name === 'Member' || !existing.name) && p.name && p.name !== 'Member') {
+        existing.name = p.name;
+      }
+      if (!existing.email && p.email) existing.email = p.email;
+      if (!existing.phone && p.phone) existing.phone = p.phone;
+      if (p.authUserId && !p.authUserId.startsWith('prof_')) existing.authUserId = p.authUserId;
+      existing.currentStampCount = Math.max(existing.currentStampCount || 0, p.currentStampCount || 0);
+      existing.completedCardsCount = Math.max(existing.completedCardsCount || 0, p.completedCardsCount || 0);
+      existing.voucherSide350Count = Math.max(existing.voucherSide350Count || 0, p.voucherSide350Count || 0);
+      existing.voucherSide450Count = Math.max(existing.voucherSide450Count || 0, p.voucherSide450Count || 0);
+      existing.voucherMeal850Count = Math.max(existing.voucherMeal850Count || 0, p.voucherMeal850Count || 0);
+      existing.totalOrdersCount = Math.max(existing.totalOrdersCount || 0, p.totalOrdersCount || 0);
+      if (p.lastOrderSummary && !existing.lastOrderSummary) existing.lastOrderSummary = p.lastOrderSummary;
+      if (p.lastOrderDate && (!existing.lastOrderDate || new Date(p.lastOrderDate) > new Date(existing.lastOrderDate))) {
+        existing.lastOrderDate = p.lastOrderDate;
+      }
+      if (p.isBlacklisted) {
+        existing.isBlacklisted = true;
+        existing.blacklistReason = p.blacklistReason;
+      }
+    }
+  }
+
+  return Array.from(new Set(map.values()));
+}
+
 // Reactive local memory store fallback when running without cloud keys
 class LocalReactiveStore {
   private menuItems: MenuItem[] = [...INITIAL_MENU_ITEMS];
@@ -237,7 +288,21 @@ class LocalReactiveStore {
   }
 
   getProfile(userId: string, defaultName?: string, defaultEmail?: string): UserProfile {
-    if (!this.profiles.has(userId)) {
+    let prof = this.profiles.get(userId);
+    if (!prof) {
+      const cleanUserId = userId.replace(/^prof_/, '');
+      for (const p of this.profiles.values()) {
+        const cleanPAuth = p.authUserId ? p.authUserId.replace(/^prof_/, '') : '';
+        const cleanPId = p.id ? p.id.replace(/^prof_/, '') : '';
+        if (cleanPAuth === cleanUserId || cleanPId === cleanUserId) {
+          prof = p;
+          this.profiles.set(userId, prof);
+          break;
+        }
+      }
+    }
+
+    if (!prof) {
       const newProfile: UserProfile = {
         id: `prof_${userId}`,
         authUserId: userId,
@@ -259,9 +324,10 @@ class LocalReactiveStore {
       };
       this.profiles.set(userId, newProfile);
       this.save();
+      prof = newProfile;
     }
-    const prof = this.profiles.get(userId)!;
-    if (defaultName && prof.name === 'Member') prof.name = defaultName;
+
+    if (defaultName && (prof.name === 'Member' || !prof.name)) prof.name = defaultName;
     if (defaultEmail && !prof.email) prof.email = defaultEmail;
     if (prof.voucherSide350Count === undefined) prof.voucherSide350Count = 0;
     if (prof.voucherSide450Count === undefined) prof.voucherSide450Count = 0;
@@ -271,7 +337,7 @@ class LocalReactiveStore {
   }
 
   getAllProfiles(): UserProfile[] {
-    return Array.from(this.profiles.values());
+    return deduplicateProfiles(Array.from(this.profiles.values()));
   }
 
   deleteProfile(userId: string): void {
@@ -917,7 +983,7 @@ export const api = {
     if (!isCloudConnected) return localStore.getAllProfiles();
     try {
       const res = await databases.listDocuments(DB_ID, 'profiles', [Query.limit(100)]);
-      return res.documents.map((doc: any) => {
+      const mapped = res.documents.map((doc: any) => {
         const meta = (() => {
           try {
             return JSON.parse(doc.milestonesRedeemedJson || '{}');
@@ -954,6 +1020,7 @@ export const api = {
           updatedAt: doc.$updatedAt,
         };
       });
+      return deduplicateProfiles(mapped);
     } catch (err) {
       return localStore.getAllProfiles();
     }
