@@ -50,21 +50,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     try {
       let user: AuthUser;
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanName = name.trim();
+
       if (authMode === 'email_signup') {
-        if (!email.trim() || !password.trim()) {
+        if (!cleanEmail || !password.trim()) {
           throw new Error('Please enter your email and a password.');
         }
-        user = await api.signupWithEmail(email.trim(), password, name.trim() || 'Member', phone.trim() || undefined);
+        if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+          throw new Error('Please enter a valid email address.');
+        }
+        if (password.length < 8) {
+          throw new Error('Password must be at least 8 characters long (required by Appwrite).');
+        }
+        user = await api.signupWithEmail(cleanEmail, password, cleanName || 'Member', phone.trim() || undefined);
       } else {
-        if (!email.trim() || !password.trim()) {
+        if (!cleanEmail || !password.trim()) {
           throw new Error('Please enter your email and password.');
         }
-        user = await api.loginWithEmail(email.trim(), password);
+        user = await api.loginWithEmail(cleanEmail, password);
       }
 
       onSuccess(user);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Authentication failed. Please check your credentials.');
+      if (err.type === 'user_already_exists' || err.code === 409) {
+        setErrorMsg('An account with this email already exists. Please switch to "Email Log In" above, or continue with Google.');
+      } else if (err.type === 'user_invalid_credentials' || err.code === 401) {
+        setErrorMsg('Invalid email or password. If you signed up with Google, please click "1-Click Sign up with Google" above.');
+      } else if (err.type === 'general_argument_invalid' && err.message?.toLowerCase().includes('password')) {
+        setErrorMsg('Password must be at least 8 characters long.');
+      } else {
+        setErrorMsg(err.message || 'Authentication failed. Please check your credentials.');
+      }
     } finally {
       setIsLoading(false);
     }
