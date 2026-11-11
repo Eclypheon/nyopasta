@@ -17,7 +17,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onSuccess,
   onContinueAsGuest,
 }) => {
-  const [authMode, setAuthMode] = useState<'email_signup' | 'email_login' | 'phone'>('email_signup');
+  const [authMode, setAuthMode] = useState<'email_signup' | 'email_login'>('email_signup');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -55,17 +55,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           throw new Error('Please enter your email and a password.');
         }
         user = await api.signupWithEmail(email.trim(), password, name.trim() || 'Member', phone.trim() || undefined);
-      } else if (authMode === 'email_login') {
+      } else {
         if (!email.trim() || !password.trim()) {
           throw new Error('Please enter your email and password.');
         }
         user = await api.loginWithEmail(email.trim(), password);
-      } else {
-        // Phone mode
-        if (!phone.trim() || !password.trim()) {
-          throw new Error('Please enter your mobile phone number and a password.');
-        }
-        user = await api.loginWithPhone(phone.trim(), password, name.trim() || undefined);
       }
 
       onSuccess(user);
@@ -149,11 +143,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Divider */}
         <div className="flex items-center my-3.5">
           <div className="flex-1 border-t border-gray-200" />
-          <span className="px-3 text-[10px] uppercase font-bold text-gray-400">or sign up with email / mobile</span>
+          <span className="px-3 text-[10px] uppercase font-bold text-gray-400">or continue with email</span>
           <div className="flex-1 border-t border-gray-200" />
         </div>
 
-        {/* Auth Sub-mode Selector */}
+        {/* Auth Sub-mode Selector: Email Sign Up / Email Log In */}
         <div className="flex bg-cream p-1 rounded-xl mb-3 text-[11px] font-bold">
           <button
             type="button"
@@ -179,66 +173,53 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           >
             Email Log In
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setAuthMode('phone');
-              setErrorMsg(null);
-            }}
-            className={`flex-1 py-1.5 rounded-lg transition-colors ${
-              authMode === 'phone' ? 'bg-white text-terracotta shadow-xs' : 'text-navy/60 hover:text-navy'
-            }`}
-          >
-            Mobile
-          </button>
         </div>
 
         {/* Form Inputs */}
         <form onSubmit={handleSubmit} className="space-y-2.5">
-          {(authMode === 'email_signup' || authMode === 'phone') && (
-            <div>
-              <div className="relative">
-                <User className="w-3.5 h-3.5 text-navy/40 absolute left-3 top-3" />
-                <input
-                  type="text"
-                  placeholder="Your Name (e.g. Alex Tan)"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs border border-cream-dark rounded-xl bg-cream-light focus:outline-hidden focus:border-terracotta font-medium"
-                />
+          {authMode === 'email_signup' && (
+            <>
+              <div>
+                <div className="relative">
+                  <User className="w-3.5 h-3.5 text-navy/40 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    placeholder="Your Name (e.g. Alex Tan)"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-xs border border-cream-dark rounded-xl bg-cream-light focus:outline-hidden focus:border-terracotta font-medium"
+                  />
+                </div>
               </div>
-            </div>
+
+              <div>
+                <div className="relative">
+                  <Phone className="w-3.5 h-3.5 text-navy/40 absolute left-3 top-3" />
+                  <input
+                    type="tel"
+                    placeholder="Mobile Phone (for order pickup notifications)"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-xs border border-cream-dark rounded-xl bg-cream-light focus:outline-hidden focus:border-terracotta font-medium"
+                  />
+                </div>
+              </div>
+            </>
           )}
 
-          {authMode !== 'phone' ? (
-            <div>
-              <div className="relative">
-                <Mail className="w-3.5 h-3.5 text-navy/40 absolute left-3 top-3" />
-                <input
-                  type="email"
-                  required
-                  placeholder="Email Address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs border border-cream-dark rounded-xl bg-cream-light focus:outline-hidden focus:border-terracotta font-medium"
-                />
-              </div>
+          <div>
+            <div className="relative">
+              <Mail className="w-3.5 h-3.5 text-navy/40 absolute left-3 top-3" />
+              <input
+                type="email"
+                required
+                placeholder="Email Address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-xs border border-cream-dark rounded-xl bg-cream-light focus:outline-hidden focus:border-terracotta font-medium"
+              />
             </div>
-          ) : (
-            <div>
-              <div className="relative">
-                <Phone className="w-3.5 h-3.5 text-navy/40 absolute left-3 top-3" />
-                <input
-                  type="tel"
-                  required
-                  placeholder="Singapore Mobile (e.g. 91234567)"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs border border-cream-dark rounded-xl bg-cream-light focus:outline-hidden focus:border-terracotta font-medium"
-                />
-              </div>
-            </div>
-          )}
+          </div>
 
           <div>
             <div className="relative">
@@ -271,9 +252,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 ? 'Processing...'
                 : authMode === 'email_signup'
                 ? 'Sign Up as Member'
-                : authMode === 'email_login'
-                ? 'Log In'
-                : 'Continue with Mobile'}
+                : 'Log In'}
             </span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>

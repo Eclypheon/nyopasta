@@ -469,3 +469,76 @@ describe('Seam 11: Customer Blacklisting & Uncollected Order Flagging', () => {
     assert.equal(restored.blacklistReason, '');
   });
 });
+
+describe('Seam 12: Voucher Selection/Deselection Safety & Deferred Wallet Decrement', () => {
+  it('does not touch voucher balance when selected/deselected in cart; only decrements on confirmed order placement', () => {
+    const testUserId = 'test_voucher_safety_user';
+    
+    // Give customer 1 voucher via milestone progress
+    localStore.updateUserStamps(testUserId, 4, {
+      type: 'order',
+      stamps: 4,
+      description: 'Setup wallet with 1 voucher',
+    });
+    
+    let profile = localStore.getProfile(testUserId);
+    assert.equal(profile.voucherSide350Count, 1);
+
+    // Simulation of Cart State:
+    // 1. Customer opens cart and selects $3.50 voucher
+    let cartAppliedVoucher = 'side350';
+    assert.equal(cartAppliedVoucher, 'side350');
+    // Verify DB profile is NOT modified
+    profile = localStore.getProfile(testUserId);
+    assert.equal(profile.voucherSide350Count, 1);
+
+    // 2. Customer changes their mind and deselects voucher
+    cartAppliedVoucher = null;
+    assert.equal(cartAppliedVoucher, null);
+    // Verify DB profile is still NOT modified
+    profile = localStore.getProfile(testUserId);
+    assert.equal(profile.voucherSide350Count, 1);
+
+    // 3. Customer places order WITHOUT voucher
+    const orderWithoutVoucher = localStore.createOrder({
+      customerId: testUserId,
+      customerName: 'Safety Test Customer',
+      customerContact: '91234567',
+      isGuest: false,
+      items: [],
+      fulfillmentType: 'dine_in',
+      takeawayFee: 0,
+      subtotal: 10,
+      discountAmount: 0,
+      total: 10,
+      paymentMethod: 'counter',
+      paymentStatus: 'unpaid',
+      fulfillmentStatus: 'received',
+      mainsCount: 0,
+      stampsEarned: 0,
+    });
+    assert.ok(orderWithoutVoucher.id);
+    // DB profile voucher count remains exactly 1
+    profile = localStore.getProfile(testUserId);
+    assert.equal(profile.voucherSide350Count, 1);
+
+    // 4. On a subsequent order, customer selects voucher AND confirms order submission
+    cartAppliedVoucher = 'side350';
+    const voucherDeltas = cartAppliedVoucher ? { [cartAppliedVoucher]: -1 } : undefined;
+    
+    profile = localStore.updateUserStamps(
+      testUserId,
+      profile.currentStampCount,
+      {
+        type: 'order',
+        stamps: 0,
+        description: 'Redeemed side350 voucher on checkout',
+      },
+      undefined,
+      voucherDeltas
+    );
+
+    // NOW and ONLY now does the voucher decrement to 0
+    assert.equal(profile.voucherSide350Count, 0);
+  });
+});

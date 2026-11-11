@@ -18,13 +18,16 @@ This guide is designed for live in-person testing between the developer and the 
 
 ### Google OAuth Signups
 - **Flow**: Customer taps **Continue with Google** -> Google consent prompt -> redirects back to customer portal as a verified member.
-- **Verification**: Google accounts are pre-verified by Google itself. No email verification step is needed.
+- **Verification**: Google accounts are pre-verified by Google itself. No email verification step or custom provider is needed. Completely free.
 
-### Email / Password Signups
-- **Queue Experience (Standard F&B Best Practice)**: Customer inputs Name, Email, Phone, and Password -> Account is created and logged in immediately so the customer can order on the spot without stepping out of the physical queue to open an inbox.
-- **Email Verification Service**:
-  - In Appwrite Cloud, emails are sent via Appwrite's built-in transactional mail server (`noreply@appwrite.io`).
-  - **Custom Domain / Gmail SMTP**: If the client wants automated verification emails or order receipts sent directly from their own email (e.g. `waiyan@nyopasta.com` or a Gmail account), Appwrite Cloud supports custom SMTP in **Appwrite Console -> Settings -> SMTP**. Staff does not need to connect their personal Google account; they simply supply the SMTP credentials in the console.
+### Email / Password Signups (With Mobile for Order Contact)
+- **Queue Experience (Standard F&B Best Practice)**: Customer inputs Name, Email, Mobile Phone, and Password -> Account is created and logged in immediately so the customer can order on the spot without stepping out of the physical queue to open an inbox.
+- **Email Delivery Service**:
+  - In Appwrite Cloud, emails are sent via Appwrite's built-in transactional mail server (`noreply@appwrite.io`) at zero cost with zero setup.
+  - **Custom Domain / Gmail SMTP (Optional)**: If the client wants automated verification emails or order receipts sent directly from their own email (e.g. `waiyan@nyopasta.com` or a Gmail account), Appwrite Cloud supports custom SMTP in **Appwrite Console -> Settings -> SMTP**.
+- **Why Mobile SMS OTP is Excluded**:
+  - Appwrite Cloud does **not** provide free SMS delivery. Sending SMS OTPs requires an external paid SMS provider (e.g. Twilio, MessageBird) which charges a per-message fee for every Singapore SMS (~$0.06 - $0.08 per message).
+  - To keep the system 100% free and zero-maintenance for the client, authentication is streamlined strictly to **Google OAuth** and **Email & Password**, while capturing the mobile phone number as an optional contact field for order pickup notifications.
 
 ---
 
@@ -157,17 +160,20 @@ This guide is designed for live in-person testing between the developer and the 
 
 ---
 
-### Test Case 9: Voucher Redemption at Checkout
-*Objective: Apply an earned voucher discount to an order and verify deduction from wallet.*
+### Test Case 9: Voucher Selection, Deselection & Deferred Wallet Decrement
+*Objective: Verify selecting and deselecting a voucher in the cart does NOT deduct from the DB, and only confirmed order placement decrements the wallet.*
 
-1. On **Device B** (Customer), add items to cart (e.g. 1 Pasta $10.50 + 1 Garlic Bread $3.50 = $14.00).
-2. Open Cart Drawer.
+1. On **Device B** (Customer), open the Cart Drawer with items (e.g. 1 Pasta $10.50 + 1 Garlic Bread $3.50 = $14.00).
+2. Note your current voucher count in **My Voucher Wallet** (e.g., 1x $3.50 Free Side).
 3. Under **Virtual Loyalty Stamp Reward**, tap **Free Side Voucher (Max $3.50)**.
-4. Verify subtotal discounts by -$3.50.
-5. Place the order.
-6. Check customer's **Voucher Wallet**:
-   - The $3.50 voucher count decreases by 1.
-   - The remaining vouchers ($4.50, $8.50) are untouched.
+   - Subtotal reflects -$3.50 discount ($10.50 payable).
+4. Tap the voucher button again to **deselect** it.
+   - Subtotal restores to $14.00.
+5. Close the Cart Drawer, refresh the app, or inspect your wallet:
+   - **Crucial Check**: Verify your voucher count is **still 1**. Selecting/deselecting in the cart does not call the database.
+6. Re-open Cart Drawer, select the voucher, and tap **Place Order (提交订单)**.
+7. Confirm and complete checkout:
+   - **Expected Result**: Now and only now does the $3.50 voucher decrement from 1 to 0 in your wallet. The remaining vouchers ($4.50, $8.50) remain untouched.
 
 ---
 
