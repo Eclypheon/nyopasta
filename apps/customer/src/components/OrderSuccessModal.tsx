@@ -67,7 +67,9 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
           </div>
 
           <div className="flex items-center justify-between text-xs pt-1 border-t border-cream-dark/60">
-            <span className="text-navy/60 font-medium">Total Paid</span>
+            <span className="text-navy/60 font-medium">
+              {order.paymentMethod === 'counter' ? 'Pay at Counter' : 'Total Paid'}
+            </span>
             <span className="font-black text-sm text-navy">${order.total.toFixed(2)}</span>
           </div>
         </div>

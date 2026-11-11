@@ -423,19 +423,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
                   <label className="font-extrabold text-xs text-navy uppercase tracking-wide">
                     Customer Details 顾客信息
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (isGuest) {
-                        setIsAuthModalOpen(true);
-                      } else {
-                        setCustomerInfo(customerName, customerContact, true);
-                      }
-                    }}
-                    className="text-[11px] font-bold text-terracotta hover:underline"
-                  >
-                    {isGuest ? 'Sign up / Sign in as Member' : 'Ordering as Guest'}
-                  </button>
+                  {isGuest && (
+                    <button
+                      type="button"
+                      onClick={() => setIsAuthModalOpen(true)}
+                      className="text-[11px] font-bold text-terracotta hover:underline"
+                    >
+                      Sign up / Sign in as Member
+                    </button>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
