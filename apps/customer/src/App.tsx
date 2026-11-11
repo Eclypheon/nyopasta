@@ -5,7 +5,7 @@ import {
   INITIAL_MENU_ITEMS,
   api,
 } from '@nyopasta/shared';
-import { ShoppingBag, Award, Clock, ArrowRight } from 'lucide-react';
+import { ShoppingBag, Award, Clock, ArrowRight, ChevronDown } from 'lucide-react';
 import { CartProvider, useCart } from './context/CartContext';
 import { Header } from './components/Header';
 import { StoreStatusBanner } from './components/StoreStatusBanner';
@@ -31,6 +31,45 @@ function CustomerAppContent() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>(INITIAL_MENU_ITEMS);
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const loyaltyScrollRef = useRef<HTMLDivElement | null>(null);
+  const [showLoyaltyScrollDown, setShowLoyaltyScrollDown] = useState(false);
+
+  // Check if loyalty tab is scrollable
+  const checkLoyaltyScroll = () => {
+    const el = loyaltyScrollRef.current;
+    if (!el) return;
+    const canScroll = el.scrollHeight > el.clientHeight + 30;
+    const isAtTop = el.scrollTop < 50;
+    setShowLoyaltyScrollDown(canScroll && isAtTop);
+  };
+
+  useEffect(() => {
+    if (activeTab === 'loyalty') {
+      const timer = setTimeout(checkLoyaltyScroll, 250);
+      window.addEventListener('resize', checkLoyaltyScroll);
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('resize', checkLoyaltyScroll);
+      };
+    } else {
+      setShowLoyaltyScrollDown(false);
+    }
+  }, [activeTab]);
+
+  const handleLoyaltyScroll = () => {
+    const el = loyaltyScrollRef.current;
+    if (!el) return;
+    const isNearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 50;
+    if (el.scrollTop > 50 || isNearBottom) {
+      setShowLoyaltyScrollDown(false);
+    } else {
+      setShowLoyaltyScrollDown(true);
+    }
+  };
+
+  const scrollToMoreLoyalty = () => {
+    loyaltyScrollRef.current?.scrollBy({ top: 300, behavior: 'smooth' });
+  };
 
   const {
     isCartOpen,
@@ -238,12 +277,30 @@ function CustomerAppContent() {
       {/* Loyalty Tab */}
       {activeTab === 'loyalty' && (
         <div
-          className="flex-1 overflow-y-auto p-4"
+          ref={loyaltyScrollRef}
+          onScroll={handleLoyaltyScroll}
+          className="flex-1 overflow-y-auto p-4 relative"
           style={{
             paddingBottom: 'calc(7.5rem + env(safe-area-inset-bottom, 0px))',
           }}
         >
           <LoyaltyCard onOpenQrModal={() => setIsQrModalOpen(true)} />
+
+          {/* Floating Downward Arrow Indicator */}
+          {showLoyaltyScrollDown && (
+            <button
+              type="button"
+              onClick={scrollToMoreLoyalty}
+              className="fixed right-4 z-20 bg-white/95 text-navy border border-cream-dark rounded-full p-2.5 shadow-xl flex items-center justify-center backdrop-blur-xs animate-bounce active:scale-95 transition-transform"
+              style={{
+                bottom: 'calc(4.8rem + env(safe-area-inset-bottom, 0px))',
+              }}
+              title="More below · Scroll down"
+              aria-label="More below · Scroll down"
+            >
+              <ChevronDown className="w-5 h-5 text-terracotta" />
+            </button>
+          )}
         </div>
       )}
 

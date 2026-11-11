@@ -26,3 +26,33 @@ html, body {
   user-select: none;
   -webkit-touch-callout: none;
 }
+
+/* Html5Qrcode Scanner Styling: constrain strictly inside square preview */
+#qr-reader {
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+  border: none !important;
+  background-color: transparent !important;
+  padding: 0 !important;
+}
+
+#qr-reader video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 1rem !important;
+}
+
+#qr-reader__scan_region {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+#qr-reader__dashboard_section_csr,
+#qr-reader__header_message {
+  display: none !important;
+}

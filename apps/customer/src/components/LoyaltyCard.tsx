@@ -9,9 +9,7 @@ interface LoyaltyCardProps {
 export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ onOpenQrModal }) => {
   const {
     profile,
-    updateStampsDelta,
     redeemMilestoneDirect,
-    resetLoyaltyCard,
     isGuest,
     setIsAuthModalOpen,
   } = useCart();
@@ -382,51 +380,6 @@ export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ onOpenQrModal }) => {
             )}
           </div>
         )}
-      </div>
-
-      {/* Development & Demo Simulation Controls */}
-      <div className="bg-cream-light rounded-2xl p-3 border border-cream-dark/70 space-y-2">
-        <p className="text-[10px] uppercase font-extrabold text-navy/60 tracking-wider">
-          Testing & Cashier Simulation Controls
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            onClick={() => updateStampsDelta(1, 'Simulated +1 main purchase')}
-            className="px-2.5 py-1 bg-white border border-cream-dark rounded-lg text-[11px] font-bold text-navy hover:bg-cream"
-          >
-            +1 Stamp
-          </button>
-          <button
-            onClick={() => updateStampsDelta(3, 'Simulated +3 mains purchase')}
-            className="px-2.5 py-1 bg-white border border-cream-dark rounded-lg text-[11px] font-bold text-navy hover:bg-cream"
-          >
-            +3 Stamps
-          </button>
-          <button
-            onClick={() => redeemMilestoneDirect(4)}
-            className="px-2.5 py-1 bg-white border border-cream-dark rounded-lg text-[11px] font-bold text-red-600 hover:bg-red-50"
-          >
-            Redeem 4
-          </button>
-          <button
-            onClick={() => redeemMilestoneDirect(8)}
-            className="px-2.5 py-1 bg-white border border-cream-dark rounded-lg text-[11px] font-bold text-red-600 hover:bg-red-50"
-          >
-            Redeem 8
-          </button>
-          <button
-            onClick={() => redeemMilestoneDirect(12)}
-            className="px-2.5 py-1 bg-white border border-cream-dark rounded-lg text-[11px] font-bold text-red-600 hover:bg-red-50"
-          >
-            Redeem 12
-          </button>
-          <button
-            onClick={resetLoyaltyCard}
-            className="px-2.5 py-1 bg-white border border-cream-dark rounded-lg text-[11px] font-bold text-navy/50 hover:text-red-500"
-          >
-            Reset
-          </button>
-        </div>
       </div>
     </div>
   );

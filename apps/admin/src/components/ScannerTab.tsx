@@ -15,53 +15,89 @@ export function ScannerTab() {
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
+  const stopScannerInternal = async () => {
+    if (scannerRef.current) {
+      try {
+        if (scannerRef.current.isScanning) {
+          await scannerRef.current.stop();
+        }
+        await scannerRef.current.clear();
+      } catch (err) {
+        console.warn('Error during scanner cleanup:', err);
+      } finally {
+        scannerRef.current = null;
+      }
+    }
+  };
+
   // Stop camera when unmounting
   useEffect(() => {
     return () => {
-      if (scannerRef.current && scannerRef.current.isScanning) {
-        scannerRef.current.stop().catch(() => {});
-      }
+      stopScannerInternal().catch(() => {});
     };
   }, []);
 
   const startScanner = async () => {
     try {
       setStatusMessage(null);
+      await stopScannerInternal();
+
       const html5QrCode = new Html5Qrcode('qr-reader');
       scannerRef.current = html5QrCode;
-      setScanning(true);
 
-      await html5QrCode.start(
-        { facingMode: 'environment' },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
+      const config = {
+        fps: 10,
+        qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          const edge = Math.max(160, Math.floor(minEdge * 0.72));
+          return { width: edge, height: edge };
         },
-        (decodedText) => {
-          // Successfully scanned QR
-          html5QrCode.stop().then(() => {
+        aspectRatio: 1.0,
+      };
+
+      const qrSuccessCallback = (decodedText: string) => {
+        stopScannerInternal()
+          .then(() => {
             setScanning(false);
             handleCodeScanned(decodedText);
-          }).catch(() => {});
-        },
-        () => {
-          // Scanning frame callback (ignore non-matches)
-        }
-      );
+          })
+          .catch(() => {
+            setScanning(false);
+            handleCodeScanned(decodedText);
+          });
+      };
+
+      try {
+        await html5QrCode.start(
+          { facingMode: 'environment' },
+          config,
+          qrSuccessCallback,
+          () => {}
+        );
+      } catch (envErr) {
+        console.warn('Environment camera failed, attempting default user camera fallback:', envErr);
+        await html5QrCode.start(
+          { facingMode: 'user' },
+          config,
+          qrSuccessCallback,
+          () => {}
+        );
+      }
+
+      setScanning(true);
     } catch (err: any) {
       console.warn('Camera scan start failed:', err);
+      await stopScannerInternal();
       setScanning(false);
       setStatusMessage({
         type: 'error',
-        text: 'Could not access device camera. Please enter customer member ID manually below.',
+        text: 'Could not access device camera. Please check camera permissions in iOS Settings > Safari, or enter member ID manually below.',
       });
     }
   };
 
   const stopScanner = async () => {
-    if (scannerRef.current && scannerRef.current.isScanning) {
-      await scannerRef.current.stop();
-    }
+    await stopScannerInternal();
     setScanning(false);
   };
 
@@ -138,13 +174,14 @@ export function ScannerTab() {
 
         {/* Camera Scanner Viewport */}
         <div className="mt-4">
-          <div
-            id="qr-reader"
-            className="w-full aspect-square bg-gray-950 rounded-2xl overflow-hidden flex items-center justify-center text-gray-400 text-xs border border-gray-800"
-          >
+          <div className="relative w-full aspect-square bg-gray-950 rounded-2xl overflow-hidden border border-gray-800 flex items-center justify-center">
+            {/* Pure DOM node for Html5Qrcode - React never diffs children inside here */}
+            <div id="qr-reader" className="w-full h-full" />
+
+            {/* Idle overlay rendered outside qr-reader */}
             {!scanning && (
-              <div className="p-6 text-center space-y-2">
-                <Camera className="w-10 h-10 mx-auto text-gray-500" />
+              <div className="absolute inset-0 z-10 bg-gray-950 flex flex-col items-center justify-center p-6 text-center text-gray-400 text-xs">
+                <Camera className="w-10 h-10 mx-auto text-gray-500 mb-2" />
                 <p>Camera is currently idle.</p>
               </div>
             )}

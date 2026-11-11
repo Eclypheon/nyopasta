@@ -21,6 +21,7 @@ import { SettingsTab } from './components/SettingsTab';
 import { ScannerTab } from './components/ScannerTab';
 import { CustomersTab } from './components/CustomersTab';
 import { AdminLogin } from './components/AdminLogin';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { unlockAudioContext } from './utils/audio';
 
 export default function App() {
@@ -169,7 +170,11 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'scanner' && <ScannerTab />}
+        {activeTab === 'scanner' && (
+          <ErrorBoundary fallbackTitle="QR Scanner could not start">
+            <ScannerTab />
+          </ErrorBoundary>
+        )}
 
         {activeTab === 'customers' && (
           <CustomersTab onSelectCustomerForCredit={() => setActiveTab('scanner')} />
