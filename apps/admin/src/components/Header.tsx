@@ -38,9 +38,9 @@ export const Header: React.FC<HeaderProps> = ({
     >
       <div className="flex items-center gap-3">
         <img
-          src={`${import.meta.env.BASE_URL}stamp-darkblue.png`}
+          src={`${import.meta.env.BASE_URL}admin-icon.png`}
           alt="NYO Pasta"
-          className="w-9 h-9 rounded-full bg-white p-0.5 object-contain shadow-xs shrink-0"
+          className="w-9 h-9 rounded-full object-contain shadow-xs shrink-0"
           style={{ width: 36, height: 36, minWidth: 36, minHeight: 36 }}
           onError={(e) => {
             (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}logo.jpg`;
