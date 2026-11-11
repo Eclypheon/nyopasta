@@ -161,6 +161,11 @@ async function run() {
   await ensureStringAttribute('profiles', 'lastOrderSummary', 512, false);
   await ensureStringAttribute('profiles', 'lastOrderDate', 64, false);
   await ensureIntegerAttribute('profiles', 'totalOrdersCount', false, 0);
+  await ensureIntegerAttribute('profiles', 'voucherSide350Count', false, 0);
+  await ensureIntegerAttribute('profiles', 'voucherSide450Count', false, 0);
+  await ensureIntegerAttribute('profiles', 'voucherMeal850Count', false, 0);
+  await ensureBooleanAttribute('profiles', 'isBlacklisted', false, false);
+  await ensureStringAttribute('profiles', 'blacklistReason', 512, false);
 
   // 4.4 store_settings collection
   await ensureCollection('store_settings', 'Store Settings', [

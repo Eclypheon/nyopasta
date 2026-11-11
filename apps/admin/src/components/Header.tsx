@@ -1,6 +1,6 @@
 import React from 'react';
 import { StoreSettings, forceResetPwaCache } from '@nyopasta/shared';
-import { Power, RefreshCw, Sparkles, LogOut, User } from 'lucide-react';
+import { Power, RefreshCw, Sparkles, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   storeSettings: StoreSettings;

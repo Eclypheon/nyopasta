@@ -14,6 +14,7 @@ import {
   Utensils,
   Sparkles,
   Trash2,
+  Ban,
 } from 'lucide-react';
 import { playOrderChime, unlockAudioContext } from '../utils/audio';
 import { UnpaidWarningModal } from './UnpaidWarningModal';
@@ -29,6 +30,12 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [animatingOrderIds, setAnimatingOrderIds] = useState<Set<string>>(new Set());
   const [unpaidModalOrder, setUnpaidModalOrder] = useState<Order | null>(null);
+
+  // Customer No-Show & Blacklist reporting modal state
+  const [noShowOrder, setNoShowOrder] = useState<Order | null>(null);
+  const [noShowRemark, setNoShowRemark] = useState<string>('');
+  const [blacklistCheckbox, setBlacklistCheckbox] = useState<boolean>(true);
+  const [isSubmittingNoShow, setIsSubmittingNoShow] = useState<boolean>(false);
 
   // Track previous order IDs to detect newly arrived orders
   const prevOrderIdsRef = useRef<Set<string>>(new Set(orders.map((o) => o.id)));
@@ -156,6 +163,32 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
       onOrderUpdated?.();
     } catch (err) {
       console.error('Error archiving order:', err);
+    }
+  };
+
+  const handleOpenNoShow = (order: Order) => {
+    setNoShowOrder(order);
+    setNoShowRemark(
+      `Cancelled $${order.total.toFixed(2)} order #${order.orderNumber} after ${order.fulfillmentStatus} and did not collect/pay`
+    );
+    setBlacklistCheckbox(Boolean(order.customerId));
+  };
+
+  const handleConfirmNoShow = async () => {
+    if (!noShowOrder) return;
+    setIsSubmittingNoShow(true);
+    try {
+      await api.markOrderUncollected(
+        noShowOrder.id,
+        noShowRemark,
+        blacklistCheckbox && noShowOrder.customerId ? noShowOrder.customerId : null
+      );
+      setNoShowOrder(null);
+      onOrderUpdated?.();
+    } catch (err) {
+      console.error('Error reporting no-show:', err);
+    } finally {
+      setIsSubmittingNoShow(false);
     }
   };
 
@@ -648,6 +681,18 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
                           </button>
                         )}
 
+                        {isUnpaid && order.fulfillmentStatus !== 'cancelled' && order.fulfillmentStatus !== 'fulfilled' && order.fulfillmentStatus !== 'archived' && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenNoShow(order)}
+                            className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 transition-colors"
+                            title="Report order as abandoned/uncollected"
+                          >
+                            <Ban className="w-3.5 h-3.5 text-rose-600" />
+                            <span>No-Show (弃单拉黑)</span>
+                          </button>
+                        )}
+
                         {order.fulfillmentStatus !== 'fulfilled' && order.fulfillmentStatus !== 'archived' && order.fulfillmentStatus !== 'cancelled' && (
                           <button
                             type="button"
@@ -689,6 +734,83 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
           onConfirm={() => markOrderFulfilled(unpaidModalOrder.id, true)}
           onCancel={() => setUnpaidModalOrder(null)}
         />
+      )}
+
+      {/* Customer No-Show & Blacklist Modal */}
+      {noShowOrder && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-rose-200 space-y-4 animate-scale-in">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+                <Ban className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base text-gray-900">Report No-Show & Abandoned Order</h3>
+                <p className="text-xs text-gray-500">Record uncollected meal and handle payment default</p>
+              </div>
+            </div>
+
+            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3.5 text-xs text-rose-900 space-y-1.5">
+              <div className="flex justify-between font-bold">
+                <span>Order #{noShowOrder.orderNumber}</span>
+                <span>${noShowOrder.total.toFixed(2)} UNPAID</span>
+              </div>
+              <p className="text-[11px] text-rose-800">
+                Customer: <span className="font-bold">{noShowOrder.customerName}</span> ({noShowOrder.customerContact || 'No contact'})
+              </p>
+              <p className="text-[11px] text-rose-700">
+                Status: Marked as {noShowOrder.fulfillmentStatus}. Marking as No-Show will cancel the ticket and move it off the kitchen line.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Audit / Blacklist Remark (原因备注):
+              </label>
+              <textarea
+                rows={3}
+                value={noShowRemark}
+                onChange={(e) => setNoShowRemark(e.target.value)}
+                className="w-full text-xs p-2.5 border border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-rose-500"
+              />
+            </div>
+
+            {noShowOrder.customerId && (
+              <label className="flex items-start gap-2 p-2.5 bg-gray-50 rounded-xl border border-gray-200 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={blacklistCheckbox}
+                  onChange={(e) => setBlacklistCheckbox(e.target.checked)}
+                  className="mt-0.5 accent-rose-600 rounded"
+                />
+                <span className="text-xs text-gray-800">
+                  <strong className="block text-rose-700 font-bold">Blacklist Member Account (拉黑会员账号)</strong>
+                  Blocks this account from submitting future orders online until resolved with counter staff.
+                </span>
+              </label>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                disabled={isSubmittingNoShow}
+                onClick={() => setNoShowOrder(null)}
+                className="px-4 py-2 text-xs font-bold text-gray-600 hover:text-gray-800 bg-gray-100 rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isSubmittingNoShow}
+                onClick={handleConfirmNoShow}
+                className="px-4 py-2 text-xs font-extrabold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-md transition-colors flex items-center gap-1.5"
+              >
+                <Ban className="w-3.5 h-3.5" />
+                <span>{isSubmittingNoShow ? 'Processing...' : 'Confirm No-Show & Archive'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

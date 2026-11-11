@@ -22,6 +22,11 @@ const EMPTY_PROFILE: UserProfile = {
   currentStampCount: 0,
   completedCardsCount: 0,
   milestoneRedemptions: { stamp4: false, stamp8: false, stamp12: false },
+  voucherSide350Count: 0,
+  voucherSide450Count: 0,
+  voucherMeal850Count: 0,
+  isBlacklisted: false,
+  blacklistReason: '',
   stampHistory: [],
   totalOrdersCount: 0,
   createdAt: new Date().toISOString(),
@@ -37,6 +42,7 @@ interface CartContextValue {
   currentUser: AuthUser | null;
   isAuthModalOpen: boolean;
   appliedMilestoneReward: 4 | 8 | 12 | null;
+  appliedVoucher: 'side350' | 'side450' | 'meal850' | null;
   profile: UserProfile;
   orders: Order[];
   lastOrder: Order | null;
@@ -58,6 +64,7 @@ interface CartContextValue {
   clearCart: () => void;
   setFulfillmentType: (type: FulfillmentType) => void;
   setAppliedMilestoneReward: (reward: 4 | 8 | 12 | null) => void;
+  setAppliedVoucher: (voucher: 'side350' | 'side450' | 'meal850' | null) => void;
   setCustomerInfo: (name: string, contact: string, isGuest: boolean) => void;
   loginAsGuest: () => void;
   handleAuthSuccess: (user: AuthUser) => Promise<void>;
@@ -84,6 +91,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType>('dine_in');
   const [appliedMilestoneReward, setAppliedMilestoneReward] = useState<4 | 8 | 12 | null>(null);
+  const [appliedVoucher, setAppliedVoucher] = useState<'side350' | 'side450' | 'meal850' | null>(null);
 
   // Authentication State
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
@@ -380,6 +388,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clearCart = () => {
     setItems([]);
     setAppliedMilestoneReward(null);
+    setAppliedVoucher(null);
   };
 
   const setCustomerInfo = (name: string, contact: string, guest: boolean) => {
@@ -408,6 +417,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setItems(availableItems);
     setFulfillmentType(orderToReorder.fulfillmentType);
     setAppliedMilestoneReward(null);
+    setAppliedVoucher(null);
     setIsCartOpen(true);
   };
 
@@ -419,12 +429,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const takeawayFee = fulfillmentType === 'takeaway' ? totalItemCount * takeawayFeePerItem : 0;
 
   let discountAmount = 0;
-  if (appliedMilestoneReward === 4) {
-    discountAmount = Math.min(LOYALTY_MILESTONES.stamp4.maxRewardValue, subtotal);
-  } else if (appliedMilestoneReward === 8) {
-    discountAmount = Math.min(LOYALTY_MILESTONES.stamp8.maxRewardValue, subtotal);
-  } else if (appliedMilestoneReward === 12) {
-    discountAmount = Math.min(LOYALTY_MILESTONES.stamp12.maxRewardValue, subtotal);
+  if (appliedVoucher === 'side350' || appliedMilestoneReward === 4) {
+    discountAmount = Math.min(3.5, subtotal);
+  } else if (appliedVoucher === 'side450' || appliedMilestoneReward === 8) {
+    discountAmount = Math.min(4.5, subtotal);
+  } else if (appliedVoucher === 'meal850' || appliedMilestoneReward === 12) {
+    discountAmount = Math.min(8.5, subtotal);
   }
 
   const total = Math.max(0, subtotal + takeawayFee - discountAmount);
@@ -511,12 +521,35 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .reduce((sum, i) => sum + i.quantity, 0);
 
     const isMember = !isGuest && Boolean(currentUser?.id);
+
+    // Blacklist enforcement safeguard
+    if (isMember && profile.isBlacklisted) {
+      throw new Error(
+        profile.blacklistReason
+          ? `Order suspended: Account flagged (${profile.blacklistReason}). Please approach counter staff to reactivate.`
+          : 'Order suspended: Account flagged for an uncollected order default. Please approach counter staff.'
+      );
+    }
+
     const stampsEarned = isMember ? mainsCount : 0;
 
+    const chosenVoucher =
+      appliedVoucher ||
+      (appliedMilestoneReward === 4
+        ? 'side350'
+        : appliedMilestoneReward === 8
+        ? 'side450'
+        : appliedMilestoneReward === 12
+        ? 'meal850'
+        : null);
+
     let discountDescription = '';
-    if (appliedMilestoneReward) {
-      const milestoneKey = `stamp${appliedMilestoneReward}` as keyof typeof LOYALTY_MILESTONES;
-      discountDescription = `${LOYALTY_MILESTONES[milestoneKey].label} Reward Redemption`;
+    if (chosenVoucher === 'side350' || appliedMilestoneReward === 4) {
+      discountDescription = '$3.50 Side Voucher Redeemed';
+    } else if (chosenVoucher === 'side450' || appliedMilestoneReward === 8) {
+      discountDescription = '$4.50 Side Voucher Redeemed';
+    } else if (chosenVoucher === 'meal850' || appliedMilestoneReward === 12) {
+      discountDescription = '$8.50 Main Voucher Redeemed';
     }
 
     const orderData = {
@@ -537,32 +570,30 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       mainsCount,
       stampsEarned,
       redeemedMilestone: appliedMilestoneReward,
+      redeemedVoucher: chosenVoucher,
     };
 
     const newOrder = await api.createOrder(orderData);
 
-    // Update stamps and milestone redemptions if member
+    // Update stamps and voucher wallet if member
     if (isMember && currentUser?.id) {
-      let milestoneUpdates: Partial<typeof profile.milestoneRedemptions> | undefined;
-      if (appliedMilestoneReward) {
-        const key = `stamp${appliedMilestoneReward}` as keyof typeof profile.milestoneRedemptions;
-        milestoneUpdates = { [key]: true };
-      }
-
-      const newStampCount = profile.currentStampCount + stampsEarned;
+      const voucherDeltas = chosenVoucher ? { [chosenVoucher]: -1 } : undefined;
       const historyDescription = stampsEarned > 0
-        ? `Order ${newOrder.orderNumber}: purchased ${mainsCount} mains`
+        ? `Order ${newOrder.orderNumber}: purchased ${mainsCount} main${mainsCount > 1 ? 's' : ''}`
+        : chosenVoucher
+        ? `Order ${newOrder.orderNumber}: redeemed ${discountDescription}`
         : `Order ${newOrder.orderNumber} placed`;
 
       const updatedProfile = await api.updateUserStamps(
         currentUser.id,
-        newStampCount,
+        stampsEarned,
         {
           type: 'order',
           stamps: stampsEarned,
           description: historyDescription,
         },
-        milestoneUpdates
+        undefined,
+        voucherDeltas
       );
 
       setProfile(updatedProfile);
@@ -590,6 +621,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         currentUser,
         isAuthModalOpen,
         appliedMilestoneReward,
+        appliedVoucher,
         profile,
         orders,
         lastOrder,
@@ -611,6 +643,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearCart,
         setFulfillmentType,
         setAppliedMilestoneReward,
+        setAppliedVoucher,
         setCustomerInfo,
         loginAsGuest,
         handleAuthSuccess,

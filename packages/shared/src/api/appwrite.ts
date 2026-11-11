@@ -188,7 +188,10 @@ class LocalReactiveStore {
     return newOrder;
   }
 
-  updateOrderStatus(orderId: string, updates: Partial<Pick<Order, 'fulfillmentStatus' | 'paymentStatus'>>): Order {
+  updateOrderStatus(
+    orderId: string,
+    updates: Partial<Pick<Order, 'fulfillmentStatus' | 'paymentStatus' | 'isUncollected' | 'uncollectedRemark'>>
+  ): Order {
     const idx = this.orders.findIndex((o) => o.id === orderId);
     if (idx === -1) throw new Error('Order not found');
     this.orders[idx] = {
@@ -211,6 +214,11 @@ class LocalReactiveStore {
         currentStampCount: 0,
         completedCardsCount: 0,
         milestoneRedemptions: { stamp4: false, stamp8: false, stamp12: false },
+        voucherSide350Count: 0,
+        voucherSide450Count: 0,
+        voucherMeal850Count: 0,
+        isBlacklisted: false,
+        blacklistReason: '',
         stampHistory: [],
         totalOrdersCount: 0,
         createdAt: new Date().toISOString(),
@@ -219,7 +227,12 @@ class LocalReactiveStore {
       this.profiles.set(userId, newProfile);
       this.save();
     }
-    return this.profiles.get(userId)!;
+    const prof = this.profiles.get(userId)!;
+    if (prof.voucherSide350Count === undefined) prof.voucherSide350Count = 0;
+    if (prof.voucherSide450Count === undefined) prof.voucherSide450Count = 0;
+    if (prof.voucherMeal850Count === undefined) prof.voucherMeal850Count = 0;
+    if (prof.isBlacklisted === undefined) prof.isBlacklisted = false;
+    return prof;
   }
 
   getAllProfiles(): UserProfile[] {
@@ -230,33 +243,66 @@ class LocalReactiveStore {
     userId: string,
     newStampCount: number,
     historyEntry: Omit<StampEvent, 'id' | 'timestamp' | 'balanceAfter'>,
-    milestoneUpdates?: Partial<MilestoneStatus>
+    milestoneUpdates?: Partial<MilestoneStatus>,
+    voucherDeltas?: { side350?: number; side450?: number; meal850?: number }
   ): UserProfile {
     const profile = this.getProfile(userId);
-    const balanceAfter = newStampCount;
+    const oldLifetime = (profile.completedCardsCount * 12) + profile.currentStampCount;
+
+    let stampsEarned = historyEntry.stamps || 0;
+    if (historyEntry.type === 'manual_migration') {
+      stampsEarned = newStampCount;
+    }
+
+    let newLifetime = historyEntry.type === 'manual_migration' ? stampsEarned : (oldLifetime + stampsEarned);
+    if (newLifetime < 0) newLifetime = 0;
+
+    let newSide350 = profile.voucherSide350Count || 0;
+    let newSide450 = profile.voucherSide450Count || 0;
+    let newMeal850 = profile.voucherMeal850Count || 0;
+
+    if (stampsEarned > 0) {
+      const start = historyEntry.type === 'manual_migration' ? 0 : oldLifetime;
+      const end = newLifetime;
+      const maxCycles = Math.ceil(end / 12) + 1;
+      for (let k = 0; k < maxCycles; k++) {
+        const t4 = k * 12 + 4;
+        const t8 = k * 12 + 8;
+        const t12 = k * 12 + 12;
+        if (start < t4 && end >= t4) newSide350 += 1;
+        if (start < t8 && end >= t8) newSide450 += 1;
+        if (start < t12 && end >= t12) newMeal850 += 1;
+      }
+    }
+
+    if (voucherDeltas) {
+      if (voucherDeltas.side350) newSide350 = Math.max(0, newSide350 + voucherDeltas.side350);
+      if (voucherDeltas.side450) newSide450 = Math.max(0, newSide450 + voucherDeltas.side450);
+      if (voucherDeltas.meal850) newMeal850 = Math.max(0, newMeal850 + voucherDeltas.meal850);
+    }
+
+    const finalCompletedCards = Math.floor(newLifetime / 12);
+    const finalStamps = newLifetime % 12;
+
     const event: StampEvent = {
       ...historyEntry,
       id: `evt_${Date.now()}`,
       timestamp: new Date().toISOString(),
-      balanceAfter,
+      balanceAfter: finalStamps,
     };
-
-    let updatedMilestones = { ...profile.milestoneRedemptions, ...milestoneUpdates };
-    let completedCards = profile.completedCardsCount;
-    let finalStamps = newStampCount;
-
-    // Rollover check if reaches 12 and completed
-    if (finalStamps >= 12 && updatedMilestones.stamp12) {
-      completedCards += 1;
-      finalStamps = Math.max(0, finalStamps - 12);
-      updatedMilestones = { stamp4: false, stamp8: false, stamp12: false };
-    }
 
     const updatedProfile: UserProfile = {
       ...profile,
       currentStampCount: finalStamps,
-      completedCardsCount: completedCards,
-      milestoneRedemptions: updatedMilestones,
+      completedCardsCount: finalCompletedCards,
+      voucherSide350Count: newSide350,
+      voucherSide450Count: newSide450,
+      voucherMeal850Count: newMeal850,
+      milestoneRedemptions: {
+        stamp4: finalStamps >= 4,
+        stamp8: finalStamps >= 8,
+        stamp12: finalStamps >= 12,
+      },
       stampHistory: [event, ...profile.stampHistory],
       updatedAt: new Date().toISOString(),
     };
@@ -265,6 +311,30 @@ class LocalReactiveStore {
     this.save();
     this.notifyProfiles(userId);
     return updatedProfile;
+  }
+
+  blacklistCustomer(userId: string, reason: string): UserProfile {
+    const profile = this.getProfile(userId);
+    profile.isBlacklisted = true;
+    profile.blacklistReason = reason;
+    profile.blacklistedAt = new Date().toISOString();
+    profile.updatedAt = new Date().toISOString();
+    this.profiles.set(userId, profile);
+    this.save();
+    this.notifyProfiles(userId);
+    return profile;
+  }
+
+  unblacklistCustomer(userId: string): UserProfile {
+    const profile = this.getProfile(userId);
+    profile.isBlacklisted = false;
+    profile.blacklistReason = '';
+    profile.blacklistedAt = undefined;
+    profile.updatedAt = new Date().toISOString();
+    this.profiles.set(userId, profile);
+    this.save();
+    this.notifyProfiles(userId);
+    return profile;
   }
 
   onProfileChange(userId: string, fn: (profile: UserProfile) => void): () => void {
@@ -611,7 +681,7 @@ export const api = {
 
   async updateOrderStatus(
     orderId: string,
-    updates: Partial<Pick<Order, 'fulfillmentStatus' | 'paymentStatus'>>
+    updates: Partial<Pick<Order, 'fulfillmentStatus' | 'paymentStatus' | 'isUncollected' | 'uncollectedRemark'>>
   ): Promise<Order> {
     if (!isCloudConnected) return localStore.updateOrderStatus(orderId, updates);
     try {
@@ -668,13 +738,23 @@ export const api = {
       const res = await databases.listDocuments(DB_ID, 'profiles', [Query.equal('userId', userId)]);
       if (res.documents.length === 0) {
         // Create initial profile
+        const initialMeta = {
+          stamp4: false,
+          stamp8: false,
+          stamp12: false,
+          voucherSide350Count: 0,
+          voucherSide450Count: 0,
+          voucherMeal850Count: 0,
+          isBlacklisted: false,
+          blacklistReason: '',
+        };
         const doc: any = await databases.createDocument(DB_ID, 'profiles', ID.unique(), {
           userId,
           name: 'Member',
           role: 'customer',
           currentStampCount: 0,
           completedCardsCount: 0,
-          milestonesRedeemedJson: JSON.stringify({ stamp4: false, stamp8: false, stamp12: false }),
+          milestonesRedeemedJson: JSON.stringify(initialMeta),
           stampHistoryJson: '[]',
           totalOrdersCount: 0,
         });
@@ -687,7 +767,12 @@ export const api = {
           role: doc.role,
           currentStampCount: doc.currentStampCount,
           completedCardsCount: doc.completedCardsCount,
-          milestoneRedemptions: JSON.parse(doc.milestonesRedeemedJson),
+          milestoneRedemptions: { stamp4: false, stamp8: false, stamp12: false },
+          voucherSide350Count: 0,
+          voucherSide450Count: 0,
+          voucherMeal850Count: 0,
+          isBlacklisted: false,
+          blacklistReason: '',
           stampHistory: JSON.parse(doc.stampHistoryJson),
           totalOrdersCount: doc.totalOrdersCount,
           createdAt: doc.$createdAt,
@@ -695,6 +780,13 @@ export const api = {
         };
       }
       const doc: any = res.documents[0];
+      const meta = (() => {
+        try {
+          return JSON.parse(doc.milestonesRedeemedJson || '{}');
+        } catch {
+          return {};
+        }
+      })();
       return {
         id: doc.$id,
         authUserId: doc.userId,
@@ -704,9 +796,22 @@ export const api = {
         role: doc.role,
         currentStampCount: doc.currentStampCount,
         completedCardsCount: doc.completedCardsCount,
-        milestoneRedemptions: JSON.parse(doc.milestonesRedeemedJson),
-        stampHistory: JSON.parse(doc.stampHistoryJson),
-        totalOrdersCount: doc.totalOrdersCount,
+        milestoneRedemptions: {
+          stamp4: Boolean(meta.stamp4),
+          stamp8: Boolean(meta.stamp8),
+          stamp12: Boolean(meta.stamp12),
+        },
+        voucherSide350Count: doc.voucherSide350Count !== undefined ? doc.voucherSide350Count : (meta.voucherSide350Count || 0),
+        voucherSide450Count: doc.voucherSide450Count !== undefined ? doc.voucherSide450Count : (meta.voucherSide450Count || 0),
+        voucherMeal850Count: doc.voucherMeal850Count !== undefined ? doc.voucherMeal850Count : (meta.voucherMeal850Count || 0),
+        isBlacklisted: doc.isBlacklisted !== undefined ? Boolean(doc.isBlacklisted) : Boolean(meta.isBlacklisted),
+        blacklistReason: doc.blacklistReason || meta.blacklistReason || '',
+        blacklistedAt: doc.blacklistedAt || meta.blacklistedAt,
+        stampHistory: JSON.parse(doc.stampHistoryJson || '[]'),
+        totalOrdersCount: doc.totalOrdersCount || 0,
+        lastOrderId: doc.lastOrderId,
+        lastOrderSummary: doc.lastOrderSummary,
+        lastOrderDate: doc.lastOrderDate,
         createdAt: doc.$createdAt,
         updatedAt: doc.$updatedAt,
       };
@@ -720,24 +825,43 @@ export const api = {
     if (!isCloudConnected) return localStore.getAllProfiles();
     try {
       const res = await databases.listDocuments(DB_ID, 'profiles', [Query.limit(100)]);
-      return res.documents.map((doc: any) => ({
-        id: doc.$id,
-        authUserId: doc.userId,
-        name: doc.name,
-        email: doc.email,
-        phone: doc.phone,
-        role: doc.role,
-        currentStampCount: doc.currentStampCount,
-        completedCardsCount: doc.completedCardsCount,
-        milestoneRedemptions: JSON.parse(doc.milestonesRedeemedJson),
-        stampHistory: JSON.parse(doc.stampHistoryJson),
-        totalOrdersCount: doc.totalOrdersCount,
-        lastOrderId: doc.lastOrderId,
-        lastOrderSummary: doc.lastOrderSummary,
-        lastOrderDate: doc.lastOrderDate,
-        createdAt: doc.$createdAt,
-        updatedAt: doc.$updatedAt,
-      }));
+      return res.documents.map((doc: any) => {
+        const meta = (() => {
+          try {
+            return JSON.parse(doc.milestonesRedeemedJson || '{}');
+          } catch {
+            return {};
+          }
+        })();
+        return {
+          id: doc.$id,
+          authUserId: doc.userId,
+          name: doc.name,
+          email: doc.email,
+          phone: doc.phone,
+          role: doc.role,
+          currentStampCount: doc.currentStampCount,
+          completedCardsCount: doc.completedCardsCount,
+          milestoneRedemptions: {
+            stamp4: Boolean(meta.stamp4),
+            stamp8: Boolean(meta.stamp8),
+            stamp12: Boolean(meta.stamp12),
+          },
+          voucherSide350Count: doc.voucherSide350Count !== undefined ? doc.voucherSide350Count : (meta.voucherSide350Count || 0),
+          voucherSide450Count: doc.voucherSide450Count !== undefined ? doc.voucherSide450Count : (meta.voucherSide450Count || 0),
+          voucherMeal850Count: doc.voucherMeal850Count !== undefined ? doc.voucherMeal850Count : (meta.voucherMeal850Count || 0),
+          isBlacklisted: doc.isBlacklisted !== undefined ? Boolean(doc.isBlacklisted) : Boolean(meta.isBlacklisted),
+          blacklistReason: doc.blacklistReason || meta.blacklistReason || '',
+          blacklistedAt: doc.blacklistedAt || meta.blacklistedAt,
+          stampHistory: JSON.parse(doc.stampHistoryJson || '[]'),
+          totalOrdersCount: doc.totalOrdersCount || 0,
+          lastOrderId: doc.lastOrderId,
+          lastOrderSummary: doc.lastOrderSummary,
+          lastOrderDate: doc.lastOrderDate,
+          createdAt: doc.$createdAt,
+          updatedAt: doc.$updatedAt,
+        };
+      });
     } catch (err) {
       return localStore.getAllProfiles();
     }
@@ -747,35 +871,76 @@ export const api = {
     userId: string,
     newStampCount: number,
     historyEntry: Omit<StampEvent, 'id' | 'timestamp' | 'balanceAfter'>,
-    milestoneUpdates?: Partial<MilestoneStatus>
+    milestoneUpdates?: Partial<MilestoneStatus>,
+    voucherDeltas?: { side350?: number; side450?: number; meal850?: number }
   ): Promise<UserProfile> {
-    if (!isCloudConnected) return localStore.updateUserStamps(userId, newStampCount, historyEntry, milestoneUpdates);
+    if (!isCloudConnected) return localStore.updateUserStamps(userId, newStampCount, historyEntry, milestoneUpdates, voucherDeltas);
     try {
       const profile = await this.getUserProfile(userId);
-      const balanceAfter = newStampCount;
+      const oldLifetime = (profile.completedCardsCount * 12) + profile.currentStampCount;
+
+      let stampsEarned = historyEntry.stamps || 0;
+      if (historyEntry.type === 'manual_migration') {
+        stampsEarned = newStampCount;
+      }
+
+      let newLifetime = historyEntry.type === 'manual_migration' ? stampsEarned : (oldLifetime + stampsEarned);
+      if (newLifetime < 0) newLifetime = 0;
+
+      let newSide350 = profile.voucherSide350Count || 0;
+      let newSide450 = profile.voucherSide450Count || 0;
+      let newMeal850 = profile.voucherMeal850Count || 0;
+
+      if (stampsEarned > 0) {
+        const start = historyEntry.type === 'manual_migration' ? 0 : oldLifetime;
+        const end = newLifetime;
+        const maxCycles = Math.ceil(end / 12) + 1;
+        for (let k = 0; k < maxCycles; k++) {
+          const t4 = k * 12 + 4;
+          const t8 = k * 12 + 8;
+          const t12 = k * 12 + 12;
+          if (start < t4 && end >= t4) newSide350 += 1;
+          if (start < t8 && end >= t8) newSide450 += 1;
+          if (start < t12 && end >= t12) newMeal850 += 1;
+        }
+      }
+
+      if (voucherDeltas) {
+        if (voucherDeltas.side350) newSide350 = Math.max(0, newSide350 + voucherDeltas.side350);
+        if (voucherDeltas.side450) newSide450 = Math.max(0, newSide450 + voucherDeltas.side450);
+        if (voucherDeltas.meal850) newMeal850 = Math.max(0, newMeal850 + voucherDeltas.meal850);
+      }
+
+      const finalCompletedCards = Math.floor(newLifetime / 12);
+      const finalStamps = newLifetime % 12;
+
       const event: StampEvent = {
         ...historyEntry,
         id: `evt_${Date.now()}`,
         timestamp: new Date().toISOString(),
-        balanceAfter,
+        balanceAfter: finalStamps,
       };
 
-      let updatedMilestones = { ...profile.milestoneRedemptions, ...milestoneUpdates };
-      let completedCards = profile.completedCardsCount;
-      let finalStamps = newStampCount;
+      const metaPayload = {
+        stamp4: finalStamps >= 4,
+        stamp8: finalStamps >= 8,
+        stamp12: finalStamps >= 12,
+        voucherSide350Count: newSide350,
+        voucherSide450Count: newSide450,
+        voucherMeal850Count: newMeal850,
+        isBlacklisted: profile.isBlacklisted || false,
+        blacklistReason: profile.blacklistReason || '',
+        blacklistedAt: profile.blacklistedAt,
+      };
 
-      if (finalStamps >= 12 && updatedMilestones.stamp12) {
-        completedCards += 1;
-        finalStamps = Math.max(0, finalStamps - 12);
-        updatedMilestones = { stamp4: false, stamp8: false, stamp12: false };
-      }
-
-      const doc: any = await databases.updateDocument(DB_ID, 'profiles', profile.id, {
+      const payload: any = {
         currentStampCount: finalStamps,
-        completedCardsCount: completedCards,
-        milestonesRedeemedJson: JSON.stringify(updatedMilestones),
+        completedCardsCount: finalCompletedCards,
+        milestonesRedeemedJson: JSON.stringify(metaPayload),
         stampHistoryJson: JSON.stringify([event, ...profile.stampHistory]),
-      });
+      };
+
+      const doc: any = await databases.updateDocument(DB_ID, 'profiles', profile.id, payload);
 
       return {
         id: doc.$id,
@@ -784,18 +949,96 @@ export const api = {
         email: doc.email,
         phone: doc.phone,
         role: doc.role,
-        currentStampCount: doc.currentStampCount,
-        completedCardsCount: doc.completedCardsCount,
-        milestoneRedemptions: JSON.parse(doc.milestonesRedeemedJson),
-        stampHistory: JSON.parse(doc.stampHistoryJson),
+        currentStampCount: finalStamps,
+        completedCardsCount: finalCompletedCards,
+        milestoneRedemptions: {
+          stamp4: finalStamps >= 4,
+          stamp8: finalStamps >= 8,
+          stamp12: finalStamps >= 12,
+        },
+        voucherSide350Count: newSide350,
+        voucherSide450Count: newSide450,
+        voucherMeal850Count: newMeal850,
+        isBlacklisted: profile.isBlacklisted || false,
+        blacklistReason: profile.blacklistReason || '',
+        blacklistedAt: profile.blacklistedAt,
+        stampHistory: [event, ...profile.stampHistory],
         totalOrdersCount: doc.totalOrdersCount,
         createdAt: doc.$createdAt,
         updatedAt: doc.$updatedAt,
       };
     } catch (err) {
       console.warn('Appwrite updateUserStamps failed, falling back:', err);
-      return localStore.updateUserStamps(userId, newStampCount, historyEntry, milestoneUpdates);
+      return localStore.updateUserStamps(userId, newStampCount, historyEntry, milestoneUpdates, voucherDeltas);
     }
+  },
+
+  async blacklistCustomer(userId: string, reason: string): Promise<UserProfile> {
+    if (!isCloudConnected) return localStore.blacklistCustomer(userId, reason);
+    try {
+      const profile = await this.getUserProfile(userId);
+      const metaPayload = {
+        ...profile.milestoneRedemptions,
+        voucherSide350Count: profile.voucherSide350Count,
+        voucherSide450Count: profile.voucherSide450Count,
+        voucherMeal850Count: profile.voucherMeal850Count,
+        isBlacklisted: true,
+        blacklistReason: reason,
+        blacklistedAt: new Date().toISOString(),
+      };
+      await databases.updateDocument(DB_ID, 'profiles', profile.id, {
+        milestonesRedeemedJson: JSON.stringify(metaPayload),
+      });
+      return {
+        ...profile,
+        isBlacklisted: true,
+        blacklistReason: reason,
+        blacklistedAt: metaPayload.blacklistedAt,
+      };
+    } catch (err) {
+      console.warn('Appwrite blacklistCustomer failed, falling back:', err);
+      return localStore.blacklistCustomer(userId, reason);
+    }
+  },
+
+  async unblacklistCustomer(userId: string): Promise<UserProfile> {
+    if (!isCloudConnected) return localStore.unblacklistCustomer(userId);
+    try {
+      const profile = await this.getUserProfile(userId);
+      const metaPayload = {
+        ...profile.milestoneRedemptions,
+        voucherSide350Count: profile.voucherSide350Count,
+        voucherSide450Count: profile.voucherSide450Count,
+        voucherMeal850Count: profile.voucherMeal850Count,
+        isBlacklisted: false,
+        blacklistReason: '',
+        blacklistedAt: undefined,
+      };
+      await databases.updateDocument(DB_ID, 'profiles', profile.id, {
+        milestonesRedeemedJson: JSON.stringify(metaPayload),
+      });
+      return {
+        ...profile,
+        isBlacklisted: false,
+        blacklistReason: '',
+        blacklistedAt: undefined,
+      };
+    } catch (err) {
+      console.warn('Appwrite unblacklistCustomer failed, falling back:', err);
+      return localStore.unblacklistCustomer(userId);
+    }
+  },
+
+  async markOrderUncollected(orderId: string, remark: string, customerId?: string | null): Promise<Order> {
+    if (customerId) {
+      await this.blacklistCustomer(customerId, remark);
+    }
+    return this.updateOrderStatus(orderId, {
+      fulfillmentStatus: 'cancelled',
+      paymentStatus: 'unpaid',
+      isUncollected: true,
+      uncollectedRemark: remark,
+    });
   },
 
   // Realtime subscriptions

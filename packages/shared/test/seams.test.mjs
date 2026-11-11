@@ -332,3 +332,140 @@ describe('Seam 8: Order Cancellation & Archival Lifecycle', () => {
     assert.equal(archived.fulfillmentStatus, 'archived');
   });
 });
+
+describe('Seam 9: Sides-Only Orders & Stamp Exemption', () => {
+  it('awards 0 stamps when order contains only sides and drinks', () => {
+    const testUserId = 'test_sides_only_user';
+    const initial = localStore.getProfile(testUserId);
+    assert.equal(initial.currentStampCount, 0);
+
+    // Customer orders 2 garlic breads and 1 soup (mainsCount = 0)
+    const order = localStore.createOrder({
+      customerId: testUserId,
+      customerName: 'Sides Only Customer',
+      customerContact: '91234567',
+      isGuest: false,
+      items: [
+        {
+          id: 'side_1',
+          menuItemId: 'side-garlic-bread',
+          name: 'Garlic Bread',
+          chineseName: '大蒜面包',
+          category: 'sides',
+          isKidPortion: false,
+          unitPrice: 3.5,
+          quantity: 2,
+          selectedAddOns: [],
+          itemTotal: 7.0,
+        },
+      ],
+      fulfillmentType: 'dine_in',
+      takeawayFee: 0,
+      subtotal: 7.0,
+      discountAmount: 0,
+      total: 7.0,
+      paymentMethod: 'counter',
+      paymentStatus: 'unpaid',
+      fulfillmentStatus: 'received',
+      mainsCount: 0,
+      stampsEarned: 0,
+    });
+
+    assert.equal(order.mainsCount, 0);
+    assert.equal(order.stampsEarned, 0);
+
+    // Profile stamps do not increment
+    const updated = localStore.updateUserStamps(testUserId, 0, {
+      type: 'order',
+      stamps: 0,
+      description: `Order ${order.orderNumber} placed`,
+    });
+
+    assert.equal(updated.currentStampCount, 0);
+    assert.equal(updated.voucherSide350Count, 0);
+  });
+});
+
+describe('Seam 10: Voucher Wallet Lifecycle Across 12-Stamp Card Rollover', () => {
+  it('increments vouchers at 4, 8, 12 stamps and preserves wallet vouchers across card rollover', () => {
+    const testUserId = 'test_voucher_rollover_user';
+    
+    // Step 1: Customer buys 4 mains -> crosses 4 stamps -> earns 1x $3.50 voucher
+    let prof = localStore.updateUserStamps(testUserId, 4, {
+      type: 'order',
+      stamps: 4,
+      description: 'Purchased 4 mains',
+    });
+    assert.equal(prof.currentStampCount, 4);
+    assert.equal(prof.completedCardsCount, 0);
+    assert.equal(prof.voucherSide350Count, 1);
+    assert.equal(prof.voucherSide450Count, 0);
+    assert.equal(prof.voucherMeal850Count, 0);
+
+    // Step 2: Customer buys 4 more mains -> reaches 8 stamps -> earns 1x $4.50 voucher
+    prof = localStore.updateUserStamps(testUserId, 8, {
+      type: 'order',
+      stamps: 4,
+      description: 'Purchased 4 mains',
+    });
+    assert.equal(prof.currentStampCount, 8);
+    assert.equal(prof.voucherSide350Count, 1);
+    assert.equal(prof.voucherSide450Count, 1);
+    assert.equal(prof.voucherMeal850Count, 0);
+
+    // Step 3: Customer buys 5 more mains -> total 13 -> completes card (12), overflows to 1 stamp
+    // Earns 1x $8.50 meal voucher, 1 card completed, 1 stamp on new card
+    prof = localStore.updateUserStamps(testUserId, 13, {
+      type: 'order',
+      stamps: 5,
+      description: 'Purchased 5 mains',
+    });
+    assert.equal(prof.completedCardsCount, 1);
+    assert.equal(prof.currentStampCount, 1);
+    // Vouchers must persist in wallet!
+    assert.equal(prof.voucherSide350Count, 1);
+    assert.equal(prof.voucherSide450Count, 1);
+    assert.equal(prof.voucherMeal850Count, 1);
+
+    // Step 4: Customer redeems the $3.50 voucher on a sides order
+    prof = localStore.updateUserStamps(
+      testUserId,
+      1,
+      {
+        type: 'order',
+        stamps: 0,
+        description: 'Redeemed $3.50 side voucher',
+      },
+      undefined,
+      { side350: -1 }
+    );
+
+    // $3.50 voucher decrements, but other vouchers and current stamps remain intact!
+    assert.equal(prof.voucherSide350Count, 0);
+    assert.equal(prof.voucherSide450Count, 1);
+    assert.equal(prof.voucherMeal850Count, 1);
+    assert.equal(prof.currentStampCount, 1);
+    assert.equal(prof.completedCardsCount, 1);
+  });
+});
+
+describe('Seam 11: Customer Blacklisting & Uncollected Order Flagging', () => {
+  it('flags customer profile as blacklisted and clears flag upon unblacklisting', () => {
+    const testUserId = 'test_blacklist_user';
+    localStore.getProfile(testUserId);
+
+    // Admin reports customer as no-show
+    const flagged = localStore.blacklistCustomer(
+      testUserId,
+      'Cancelled $18.50 order #NYO-099 after preparing and did not collect/pay'
+    );
+    assert.equal(flagged.isBlacklisted, true);
+    assert.match(flagged.blacklistReason, /did not collect\/pay/);
+    assert.ok(flagged.blacklistedAt);
+
+    // Customer settles bill at counter; admin restores account
+    const restored = localStore.unblacklistCustomer(testUserId);
+    assert.equal(restored.isBlacklisted, false);
+    assert.equal(restored.blacklistReason, '');
+  });
+});

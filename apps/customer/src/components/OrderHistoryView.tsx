@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Clock, RotateCcw, Utensils, Package, CheckCircle, ChefHat, QrCode as QrIcon } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { FulfillmentStatus, Order } from '@nyopasta/shared';
+import { FulfillmentStatus, Order, api } from '@nyopasta/shared';
 import { PayNowModal } from './PayNowModal';
 
 interface OrderHistoryViewProps {

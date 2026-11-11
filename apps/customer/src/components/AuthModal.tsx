@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Mail, Phone, Lock, ArrowRight, ShieldCheck, Sparkles, X, AlertCircle } from 'lucide-react';
+import { User, Mail, Phone, Lock, ArrowRight, X, AlertCircle } from 'lucide-react';
 import { api, AuthUser } from '@nyopasta/shared';
 
 interface AuthModalProps {

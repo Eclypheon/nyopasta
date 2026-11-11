@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { QrCode, Sparkles, History } from 'lucide-react';
+import { QrCode, Sparkles, History, Ticket, Ban } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
 interface LoyaltyCardProps {
@@ -25,6 +25,22 @@ export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ onOpenQrModal }) => {
 
   return (
     <div className="space-y-4">
+      {/* Blacklist Warning Notice if flagged */}
+      {profile.isBlacklisted && (
+        <div className="bg-rose-50 border border-rose-300 rounded-3xl p-4 text-xs text-rose-950 space-y-1 shadow-sm">
+          <div className="flex items-center gap-2 font-extrabold text-sm text-rose-700">
+            <Ban className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>Online Ordering Temporarily Suspended</span>
+          </div>
+          <p className="text-rose-800">
+            {profile.blacklistReason || 'Your account has an uncollected order default on record.'}
+          </p>
+          <p className="text-[11px] text-rose-600 font-medium">
+            Please approach the counter staff at the shop to settle your bill and reactivate online ordering.
+          </p>
+        </div>
+      )}
+
       {/* Guest Mode Notice if applicable */}
       {isGuest && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900 flex items-center justify-between">
@@ -196,6 +212,47 @@ export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ onOpenQrModal }) => {
                 🎉 {profile.completedCardsCount} {profile.completedCardsCount === 1 ? 'Card' : 'Cards'} Completed
               </span>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* Active Voucher Wallet */}
+      <div className="bg-white rounded-3xl p-4 border border-cream-dark shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center text-amber-800">
+              <Ticket className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-sm text-navy">My Voucher Wallet (我的券包)</h3>
+              <p className="text-[10px] text-navy/50">Stamps roll over after 12 without resetting earned vouchers</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          <div className="p-2.5 rounded-2xl bg-amber-50/60 border border-amber-200/70 text-center space-y-1">
+            <span className="block text-[10px] font-bold text-amber-800 uppercase tracking-tight">Free Side</span>
+            <span className="block text-xs font-black text-amber-950">$3.50 Off</span>
+            <span className="inline-block text-[10px] font-extrabold bg-white px-2 py-0.5 rounded-full text-amber-900 border border-amber-300 shadow-2xs">
+              Qty: {profile.voucherSide350Count || 0}
+            </span>
+          </div>
+
+          <div className="p-2.5 rounded-2xl bg-amber-50/60 border border-amber-200/70 text-center space-y-1">
+            <span className="block text-[10px] font-bold text-amber-800 uppercase tracking-tight">Free Side</span>
+            <span className="block text-xs font-black text-amber-950">$4.50 Off</span>
+            <span className="inline-block text-[10px] font-extrabold bg-white px-2 py-0.5 rounded-full text-amber-900 border border-amber-300 shadow-2xs">
+              Qty: {profile.voucherSide450Count || 0}
+            </span>
+          </div>
+
+          <div className="p-2.5 rounded-2xl bg-terracotta-50/60 border border-terracotta/30 text-center space-y-1">
+            <span className="block text-[10px] font-bold text-terracotta uppercase tracking-tight">Free Main</span>
+            <span className="block text-xs font-black text-navy">$8.50 Off</span>
+            <span className="inline-block text-[10px] font-extrabold bg-white px-2 py-0.5 rounded-full text-terracotta border border-terracotta/40 shadow-2xs">
+              Qty: {profile.voucherMeal850Count || 0}
+            </span>
           </div>
         </div>
       </div>

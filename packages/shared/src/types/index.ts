@@ -74,9 +74,14 @@ export interface Order {
   mainsCount: number;
   stampsEarned: number;
   redeemedMilestone?: 4 | 8 | 12 | null;
+  redeemedVoucher?: 'side350' | 'side450' | 'meal850' | null;
+  isUncollected?: boolean;
+  uncollectedRemark?: string;
   createdAt: string;
   updatedAt: string;
 }
+
+export type VoucherType = 'side350' | 'side450' | 'meal850';
 
 export interface StampEvent {
   id: string;
@@ -111,6 +116,14 @@ export interface UserProfile {
   currentStampCount: number;
   completedCardsCount: number;
   milestoneRedemptions: MilestoneStatus;
+  // Voucher wallet counts (persists across card rollovers)
+  voucherSide350Count: number;
+  voucherSide450Count: number;
+  voucherMeal850Count: number;
+  // Blacklisting against uncollected orders
+  isBlacklisted?: boolean;
+  blacklistReason?: string;
+  blacklistedAt?: string;
   stampHistory: StampEvent[];
   lastOrderId?: string;
   lastOrderSummary?: string;

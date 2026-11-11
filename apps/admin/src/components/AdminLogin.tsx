@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { Lock, User, Eye, EyeOff, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 interface AdminLoginProps {
   onLoginSuccess: (username: string) => void;
 }
 
 export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
-  const [username, setUsername] = useState('waiyan');
-  const [password, setPassword] = useState('nyopasta2026*');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,8 +20,10 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
     const cleanUser = username.trim().toLowerCase();
     const cleanPass = password.trim();
 
-    // Default admin credentials requested by user: waiyan / nyopasta2026*
-    if ((cleanUser === 'waiyan' || cleanUser === 'admin') && cleanPass === 'nyopasta2026*') {
+    const allowedUser = (import.meta.env.VITE_ADMIN_USERNAME || 'waiyan').toLowerCase();
+    const allowedPass = import.meta.env.VITE_ADMIN_PASSWORD || 'nyopasta2026*';
+
+    if ((cleanUser === allowedUser || cleanUser === 'admin') && cleanPass === allowedPass) {
       localStorage.setItem('nyo_admin_auth', cleanUser);
       setIsLoading(false);
       onLoginSuccess(cleanUser);
@@ -65,7 +67,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="waiyan"
+                placeholder="Enter admin username"
                 className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:border-terracotta focus:bg-white transition-colors"
               />
             </div>
@@ -82,7 +84,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
+                placeholder="Enter admin password"
                 className="w-full pl-9 pr-10 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:border-terracotta focus:bg-white transition-colors"
               />
               <button
@@ -101,11 +103,6 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
               <span>{errorMsg}</span>
             </div>
           )}
-
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900 flex items-start gap-2">
-            <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-            <span>Pre-configured with default credentials for instant client testing.</span>
-          </div>
 
           <button
             type="submit"

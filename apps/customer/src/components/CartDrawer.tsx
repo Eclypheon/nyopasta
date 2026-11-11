@@ -34,6 +34,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
     setCustomerInfo,
     appliedMilestoneReward,
     setAppliedMilestoneReward,
+    appliedVoucher,
+    setAppliedVoucher,
     profile,
     updateItemQuantity,
     removeItem,
@@ -79,10 +81,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
     (item) => liveMenuItems.find((m) => m.id === item.menuItemId)?.isSoldOut
   );
 
-  // Available rewards to claim if member
-  const canClaim4 = !isGuest && profile.currentStampCount >= 4 && !profile.milestoneRedemptions.stamp4;
-  const canClaim8 = !isGuest && profile.currentStampCount >= 8 && !profile.milestoneRedemptions.stamp8;
-  const canClaim12 = !isGuest && profile.currentStampCount >= 12 && !profile.milestoneRedemptions.stamp12;
+  // Available rewards to claim from voucher wallet OR milestone progress
+  const canClaim4 = !isGuest && ((profile.voucherSide350Count || 0) > 0 || (profile.currentStampCount >= 4 && !profile.milestoneRedemptions.stamp4));
+  const canClaim8 = !isGuest && ((profile.voucherSide450Count || 0) > 0 || (profile.currentStampCount >= 8 && !profile.milestoneRedemptions.stamp8));
+  const canClaim12 = !isGuest && ((profile.voucherMeal850Count || 0) > 0 || (profile.currentStampCount >= 12 && !profile.milestoneRedemptions.stamp12));
   const hasAvailableReward = canClaim4 || canClaim8 || canClaim12;
 
   const handleCheckout = async () => {
@@ -322,58 +324,79 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
                   {hasAvailableReward ? (
                     <div className="space-y-1.5 pt-1">
                       <p className="text-[11px] text-navy/70">
-                        You have earned rewards! Select one to redeem on this order:
+                        You have earned vouchers! Select one to redeem on this order:
                       </p>
 
                       <div className="space-y-1">
                         {canClaim4 && (
                           <button
                             type="button"
-                            onClick={() =>
-                              setAppliedMilestoneReward(appliedMilestoneReward === 4 ? null : 4)
-                            }
+                            onClick={() => {
+                              const next = appliedVoucher === 'side350' || appliedMilestoneReward === 4 ? null : 'side350';
+                              setAppliedVoucher(next);
+                              setAppliedMilestoneReward(next ? 4 : null);
+                            }}
                             className={`w-full p-2 rounded-xl border text-left flex items-center justify-between text-xs transition-colors ${
-                              appliedMilestoneReward === 4
+                              appliedVoucher === 'side350' || appliedMilestoneReward === 4
                                 ? 'border-terracotta bg-terracotta-50 font-bold text-terracotta'
                                 : 'border-cream-dark hover:bg-cream-light text-navy'
                             }`}
                           >
-                            <span>Stamp 4: $3.50 Side Discount</span>
-                            <span className="font-extrabold">-$3.50</span>
+                            <div>
+                              <span className="block font-bold">Free Side Voucher</span>
+                              <span className="block text-[10px] text-navy/50">
+                                Max $3.50 ({profile.voucherSide350Count || 1} in wallet)
+                              </span>
+                            </div>
+                            <span className="font-extrabold text-sm">-$3.50</span>
                           </button>
                         )}
 
                         {canClaim8 && (
                           <button
                             type="button"
-                            onClick={() =>
-                              setAppliedMilestoneReward(appliedMilestoneReward === 8 ? null : 8)
-                            }
+                            onClick={() => {
+                              const next = appliedVoucher === 'side450' || appliedMilestoneReward === 8 ? null : 'side450';
+                              setAppliedVoucher(next);
+                              setAppliedMilestoneReward(next ? 8 : null);
+                            }}
                             className={`w-full p-2 rounded-xl border text-left flex items-center justify-between text-xs transition-colors ${
-                              appliedMilestoneReward === 8
+                              appliedVoucher === 'side450' || appliedMilestoneReward === 8
                                 ? 'border-terracotta bg-terracotta-50 font-bold text-terracotta'
                                 : 'border-cream-dark hover:bg-cream-light text-navy'
                             }`}
                           >
-                            <span>Stamp 8: $4.50 Side Discount</span>
-                            <span className="font-extrabold">-$4.50</span>
+                            <div>
+                              <span className="block font-bold">Free Side Voucher</span>
+                              <span className="block text-[10px] text-navy/50">
+                                Max $4.50 ({profile.voucherSide450Count || 1} in wallet)
+                              </span>
+                            </div>
+                            <span className="font-extrabold text-sm">-$4.50</span>
                           </button>
                         )}
 
                         {canClaim12 && (
                           <button
                             type="button"
-                            onClick={() =>
-                              setAppliedMilestoneReward(appliedMilestoneReward === 12 ? null : 12)
-                            }
+                            onClick={() => {
+                              const next = appliedVoucher === 'meal850' || appliedMilestoneReward === 12 ? null : 'meal850';
+                              setAppliedVoucher(next);
+                              setAppliedMilestoneReward(next ? 12 : null);
+                            }}
                             className={`w-full p-2 rounded-xl border text-left flex items-center justify-between text-xs transition-colors ${
-                              appliedMilestoneReward === 12
+                              appliedVoucher === 'meal850' || appliedMilestoneReward === 12
                                 ? 'border-terracotta bg-terracotta-50 font-bold text-terracotta'
                                 : 'border-cream-dark hover:bg-cream-light text-navy'
                             }`}
                           >
-                            <span>Stamp 12: $8.50 Main Discount</span>
-                            <span className="font-extrabold">-$8.50</span>
+                            <div>
+                              <span className="block font-bold">Free Main Voucher</span>
+                              <span className="block text-[10px] text-navy/50">
+                                Max $8.50 ({profile.voucherMeal850Count || 1} in wallet)
+                              </span>
+                            </div>
+                            <span className="font-extrabold text-sm">-$8.50</span>
                           </button>
                         )}
                       </div>

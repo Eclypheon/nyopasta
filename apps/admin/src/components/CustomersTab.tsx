@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Search, Award, ShoppingBag, Clock, PlusCircle } from 'lucide-react';
+import { Users, Search, Award, ShoppingBag, Clock, PlusCircle, Ban, Ticket } from 'lucide-react';
 import { api, UserProfile } from '@nyopasta/shared';
 
 interface CustomersTabProps {
@@ -28,6 +28,15 @@ export function CustomersTab({ onSelectCustomerForCredit }: CustomersTabProps) {
       console.warn('Error loading customer profiles:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleUnblacklist = async (userId: string) => {
+    try {
+      await api.unblacklistCustomer(userId);
+      await loadCustomers();
+    } catch (err) {
+      console.error('Error unblacklisting customer:', err);
     }
   };
 
@@ -89,12 +98,24 @@ export function CustomersTab({ onSelectCustomerForCredit }: CustomersTabProps) {
           {filtered.map((profile) => (
             <div
               key={profile.id}
-              className="bg-white rounded-2xl p-4 border border-gray-200 shadow-xs hover:border-terracotta/40 transition-colors space-y-3"
+              className={`rounded-2xl p-4 border shadow-xs transition-colors space-y-3 ${
+                profile.isBlacklisted
+                  ? 'bg-rose-50/40 border-rose-300'
+                  : 'bg-white border-gray-200 hover:border-terracotta/40'
+              }`}
             >
               {/* Member Summary Header */}
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="font-extrabold text-sm text-gray-900">{profile.name || 'Member'}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-sm text-gray-900">{profile.name || 'Member'}</h3>
+                    {profile.isBlacklisted && (
+                      <span className="inline-flex items-center gap-1 bg-rose-100 text-rose-800 text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-200">
+                        <Ban className="w-3 h-3 text-rose-600" />
+                        BLACKLISTED (已拉黑)
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 mt-0.5 text-[11px] text-gray-500">
                     {profile.phone && <span>{profile.phone}</span>}
                     {profile.email && <span>{profile.email}</span>}
@@ -112,6 +133,42 @@ export function CustomersTab({ onSelectCustomerForCredit }: CustomersTabProps) {
                       {profile.completedCardsCount} card(s) completed
                     </span>
                   )}
+                </div>
+              </div>
+
+              {/* Blacklist banner if applicable */}
+              {profile.isBlacklisted && (
+                <div className="bg-rose-100/70 border border-rose-300 rounded-xl p-2.5 text-xs text-rose-950 flex items-start justify-between gap-2">
+                  <div>
+                    <span className="font-bold text-[11px] text-rose-900 block">Blacklist Reason:</span>
+                    <span className="text-[11px] text-rose-800">{profile.blacklistReason || 'Uncollected order default'}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleUnblacklist(profile.authUserId || profile.id)}
+                    className="px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 rounded-lg text-[10px] font-bold shrink-0 transition-colors shadow-2xs"
+                  >
+                    Remove Blacklist (解封)
+                  </button>
+                </div>
+              )}
+
+              {/* Active Voucher Wallet Breakdown */}
+              <div className="bg-amber-50/70 rounded-xl p-2.5 text-xs border border-amber-200/60 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-amber-950 font-bold text-[11px]">
+                  <Ticket className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                  <span>Vouchers:</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-900 flex-wrap justify-end">
+                  <span className="bg-white px-2 py-0.5 rounded-md border border-amber-200 shadow-2xs">
+                    {profile.voucherSide350Count || 0}x $3.50 Side
+                  </span>
+                  <span className="bg-white px-2 py-0.5 rounded-md border border-amber-200 shadow-2xs">
+                    {profile.voucherSide450Count || 0}x $4.50 Side
+                  </span>
+                  <span className="bg-white px-2 py-0.5 rounded-md border border-amber-200 shadow-2xs">
+                    {profile.voucherMeal850Count || 0}x $8.50 Main
+                  </span>
                 </div>
               </div>
 
