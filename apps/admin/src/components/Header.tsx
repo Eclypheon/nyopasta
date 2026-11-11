@@ -1,5 +1,5 @@
-import React from 'react';
-import { StoreSettings, forceResetPwaCache } from '@nyopasta/shared';
+import React, { useMemo } from 'react';
+import { StoreSettings, forceResetPwaCache, isStoreCurrentlyOpen } from '@nyopasta/shared';
 import { Power, RefreshCw, Sparkles, LogOut } from 'lucide-react';
 
 interface HeaderProps {
@@ -15,7 +15,9 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   onQuickToggleShop,
 }) => {
-  const isClosed = storeSettings.isManuallyClosed;
+  const currentStatus = useMemo(() => isStoreCurrentlyOpen(storeSettings), [storeSettings]);
+  const isEffectiveOpen = currentStatus.isOpen;
+  const isOverridden = Boolean(currentStatus.isOverridden);
 
   const handleResetCache = async () => {
     const ok = window.confirm(
@@ -28,60 +30,85 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header
-      className="bg-navy text-white px-4 sticky top-0 z-40 shadow-md flex items-center justify-between border-b border-navy-900"
+      className="bg-navy text-white px-3 sm:px-4 sticky top-0 z-40 shadow-md flex items-center justify-between border-b border-navy-900"
       style={{
-        paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))',
-        paddingBottom: '0.75rem',
-        paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px))',
-        paddingRight: 'max(1rem, env(safe-area-inset-right, 0px))',
+        paddingTop: 'calc(0.6rem + env(safe-area-inset-top, 0px))',
+        paddingBottom: '0.6rem',
+        paddingLeft: 'max(0.75rem, env(safe-area-inset-left, 0px))',
+        paddingRight: 'max(0.75rem, env(safe-area-inset-right, 0px))',
       }}
     >
-      <div className="flex items-center gap-3">
+      {/* Left: Brand Logo & Title in single line with Status Pill */}
+      <div className="flex items-center gap-2 min-w-0">
         <img
           src={`${import.meta.env.BASE_URL}admin-icon.png`}
           alt="NYO Pasta"
-          className="w-9 h-9 rounded-full object-contain shadow-xs shrink-0"
-          style={{ width: 36, height: 36, minWidth: 36, minHeight: 36 }}
+          className="w-8 h-8 rounded-full object-contain shadow-xs shrink-0"
+          style={{ width: 32, height: 32, minWidth: 32, minHeight: 32 }}
           onError={(e) => {
             (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}logo.jpg`;
           }}
         />
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-black text-sm tracking-wide leading-tight">NYO KITCHEN & ADMIN</h1>
-            <span
-              className={`text-[10px] font-black px-2 py-0.2 rounded-full uppercase tracking-wider ${
-                isClosed ? 'bg-red-500/90 text-white' : 'bg-emerald-500/90 text-white'
-              }`}
-            >
-              {isClosed ? 'Shop Closed' : 'Live'}
-            </span>
-          </div>
-          <p className="text-[11px] text-gray-300">Toa Payoh Palm Spring</p>
+        <div className="flex items-center gap-2 min-w-0">
+          <h1 className="font-black text-sm tracking-wide leading-tight whitespace-nowrap text-white">
+            NYOPASTA ADMIN
+          </h1>
+          <span
+            className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 whitespace-nowrap shadow-xs ${
+              isEffectiveOpen
+                ? isOverridden
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-emerald-500 text-white'
+                : isOverridden
+                ? 'bg-rose-600 text-white'
+                : 'bg-gray-600 text-gray-200'
+            }`}
+            title={
+              isOverridden
+                ? `Manual operating hours override in place (${isEffectiveOpen ? 'Forced Open' : 'Forced Closed'})`
+                : currentStatus.reason
+            }
+          >
+            {isEffectiveOpen
+              ? isOverridden
+                ? 'Open (Override)'
+                : 'Live'
+              : isOverridden
+              ? 'Closed (Override)'
+              : 'Closed'}
+          </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        {/* Quick Shop Open/Close Toggle */}
+      {/* Spacer to provide breathing room between title pill and buttons */}
+      <div className="flex-1 min-w-[12px] sm:min-w-[20px]" />
+
+      {/* Right Controls */}
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {/* Quick Shop Open/Close Toggle Button */}
         <button
           type="button"
           onClick={onQuickToggleShop}
-          className={`text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xs transition-colors ${
-            isClosed
-              ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-              : 'bg-red-600 hover:bg-red-700 text-white'
+          className={`text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xs transition-colors shrink-0 ${
+            isEffectiveOpen
+              ? 'bg-red-600 hover:bg-red-700 text-white'
+              : 'bg-emerald-600 hover:bg-emerald-700 text-white'
           }`}
-          title={isClosed ? 'Open shop for the day' : 'Close shop for the day'}
+          title={
+            isEffectiveOpen
+              ? 'Click to close shop (manual override)'
+              : 'Click to open shop (manual override)'
+          }
         >
-          {isClosed ? (
-            <>
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Open</span>
-            </>
-          ) : (
+          {isEffectiveOpen ? (
             <>
               <Power className="w-3.5 h-3.5" />
               <span>Close</span>
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Open</span>
             </>
           )}
         </button>
@@ -91,10 +118,10 @@ export const Header: React.FC<HeaderProps> = ({
           type="button"
           onClick={handleResetCache}
           title="Force reset PWA cache and reload"
-          className="p-1.5 text-gray-300 hover:text-white rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 transition-colors"
+          className="p-1.5 text-gray-300 hover:text-white rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 transition-colors shrink-0"
           aria-label="Force reset PWA cache"
         >
-          <RefreshCw className="w-4 h-4" />
+          <RefreshCw className="w-3.5 h-3.5" />
         </button>
 
         {/* Staff User & Logout */}
@@ -103,10 +130,10 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             onClick={onLogout}
             title={`Logged in as ${adminUser}. Click to logout.`}
-            className="p-1.5 text-gray-300 hover:text-red-300 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 transition-colors flex items-center gap-1"
+            className="p-1.5 text-gray-300 hover:text-red-300 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 transition-colors flex items-center gap-1 shrink-0"
             aria-label="Logout"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-3.5 h-3.5" />
           </button>
         )}
       </div>

@@ -15,20 +15,14 @@ export interface StoreOpenStatus {
   reason: string;
   nextOpenSlot?: string;
   bannerMessage?: string;
+  isOverridden?: boolean;
+  scheduledOpen?: boolean;
 }
 
 /**
- * Checks if store is currently open based on settings and current time (default Asia/Singapore).
+ * Checks scheduled store open status based purely on configured operating hours schedule.
  */
-export function isStoreCurrentlyOpen(settings: StoreSettings, customDate?: Date): StoreOpenStatus {
-  if (settings.isManuallyClosed) {
-    return {
-      isOpen: false,
-      reason: settings.manualCloseReason || 'Shop is closed for the day by management.',
-      bannerMessage: settings.bannerMessage || 'Notice: The shop is currently closed. Ordering is temporarily paused.',
-    };
-  }
-
+export function isScheduledStoreOpen(settings: StoreSettings, customDate?: Date): StoreOpenStatus {
   const now = customDate || new Date();
   
   // Format to Singapore time components
@@ -53,7 +47,8 @@ export function isStoreCurrentlyOpen(settings: StoreSettings, customDate?: Date)
     return {
       isOpen: false,
       reason: `Closed on ${daySchedule?.dayName || 'today'}.`,
-      bannerMessage: settings.bannerMessage || `We are closed today (${daySchedule?.dayName || 'today'}).`,
+      bannerMessage: `We are closed today (${daySchedule?.dayName || 'today'}).`,
+      scheduledOpen: false,
     };
   }
 
@@ -66,6 +61,7 @@ export function isStoreCurrentlyOpen(settings: StoreSettings, customDate?: Date)
     return {
       isOpen: true,
       reason: 'Open for orders.',
+      scheduledOpen: true,
     };
   }
 
@@ -76,13 +72,72 @@ export function isStoreCurrentlyOpen(settings: StoreSettings, customDate?: Date)
       isOpen: false,
       reason: `Opens at ${nextSlotToday.open} today.`,
       nextOpenSlot: `Today at ${nextSlotToday.open}`,
-      bannerMessage: settings.bannerMessage || `Currently closed. Opens at ${nextSlotToday.open} today.`,
+      bannerMessage: `Currently closed. Opens at ${nextSlotToday.open} today.`,
+      scheduledOpen: false,
     };
   }
 
   return {
     isOpen: false,
     reason: 'Closed for the day.',
-    bannerMessage: settings.bannerMessage || 'Shop closed for the day. See you during our next opening hours!',
+    bannerMessage: 'Shop closed for the day. See you during our next opening hours!',
+    scheduledOpen: false,
+  };
+}
+
+/**
+ * Checks effective store status considering operating hours and manual overrides.
+ * Manual overrides take precedence during conflicts. When time catches up to match
+ * the overridden state, the system automatically returns to following the schedule.
+ */
+export function isStoreCurrentlyOpen(settings: StoreSettings, customDate?: Date): StoreOpenStatus {
+  const scheduled = isScheduledStoreOpen(settings, customDate);
+
+  // 1. Manual Open Override: overrides if schedule says closed
+  if (settings.manualOverride === 'open') {
+    if (!scheduled.isOpen) {
+      return {
+        isOpen: true,
+        reason: 'Open (manual override in place).',
+        bannerMessage: settings.bannerMessage || 'Notice: The shop is currently open by manager override.',
+        isOverridden: true,
+        scheduledOpen: false,
+      };
+    }
+    // Schedule has caught up to open state: conflict resolved, follows schedule
+    return {
+      ...scheduled,
+      isOverridden: false,
+      scheduledOpen: true,
+    };
+  }
+
+  // 2. Manual Close Override: overrides if schedule says open
+  if (settings.manualOverride === 'closed' || settings.isManuallyClosed) {
+    if (scheduled.isOpen) {
+      return {
+        isOpen: false,
+        reason: settings.manualCloseReason || 'Shop is closed (manual override in place).',
+        bannerMessage: settings.bannerMessage || 'Notice: The shop is temporarily closed by manager override.',
+        isOverridden: true,
+        scheduledOpen: true,
+      };
+    }
+    // Schedule has caught up to closed state: conflict resolved, follows schedule
+    return {
+      ...scheduled,
+      reason: settings.manualCloseReason || scheduled.reason,
+      bannerMessage: settings.bannerMessage || scheduled.bannerMessage,
+      isOverridden: false,
+      scheduledOpen: false,
+    };
+  }
+
+  // 3. Normal schedule: no override in effect
+  return {
+    ...scheduled,
+    bannerMessage: settings.bannerMessage || scheduled.bannerMessage,
+    isOverridden: false,
+    scheduledOpen: scheduled.isOpen,
   };
 }

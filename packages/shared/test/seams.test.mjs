@@ -48,6 +48,32 @@ describe('Seam 1: Operating Hours & Store Open/Close Schedule', () => {
     assert.equal(status.isOpen, false);
     assert.match(status.reason, /Opens at 18:00/i);
   });
+
+  it('handles manual override conflict: forces open during closed schedule and flags override', () => {
+    const settings = {
+      ...DEFAULT_STORE_SETTINGS,
+      isManuallyClosed: false,
+      manualOverride: 'open',
+    };
+    const mondayNoon = new Date('2026-11-09T12:00:00+08:00'); // Normally closed on Monday
+    const status = isStoreCurrentlyOpen(settings, mondayNoon);
+    assert.equal(status.isOpen, true);
+    assert.equal(status.isOverridden, true);
+    assert.match(status.reason, /manual override/i);
+  });
+
+  it('clears manual override automatically when operating hours catch up to matching status', () => {
+    const settings = {
+      ...DEFAULT_STORE_SETTINGS,
+      isManuallyClosed: false,
+      manualOverride: 'open',
+    };
+    const tuesday1230 = new Date('2026-11-10T12:30:00+08:00'); // Scheduled open slot
+    const status = isStoreCurrentlyOpen(settings, tuesday1230);
+    // Scheduled is open, override is open -> no conflict -> isOverridden is false
+    assert.equal(status.isOpen, true);
+    assert.equal(status.isOverridden, false);
+  });
 });
 
 describe('Seam 2: Pricing, Packaging Fees & Loyalty Discounts', () => {

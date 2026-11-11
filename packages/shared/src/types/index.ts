@@ -150,6 +150,7 @@ export interface DaySchedule {
 export interface StoreSettings {
   id: string;
   isManuallyClosed: boolean;
+  manualOverride?: 'open' | 'closed' | null;
   manualCloseReason?: string;
   bannerMessage?: string;
   schedule: DaySchedule[];

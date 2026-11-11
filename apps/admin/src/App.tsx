@@ -6,6 +6,8 @@ import {
   DEFAULT_STORE_SETTINGS,
   INITIAL_MENU_ITEMS,
   api,
+  isStoreCurrentlyOpen,
+  isScheduledStoreOpen,
 } from '@nyopasta/shared';
 import {
   ClipboardList,
@@ -99,10 +101,30 @@ export default function App() {
       setStoreSettings(settings);
     });
 
-    // 3. Heartbeat polling: poll orders every 3.5s for bulletproof delivery
+    // 3. Heartbeat polling: poll orders and store status every 3.5s for bulletproof delivery
     const pollInterval = setInterval(() => {
       api.getOrders().then((latestOrders) => {
         if (latestOrders) setOrders(latestOrders);
+      }).catch(() => {});
+
+      api.getStoreSettings().then((latestSettings) => {
+        if (latestSettings) {
+          // Check if operating hours have caught up to clear conflicting manual overrides
+          if (latestSettings.manualOverride) {
+            const scheduled = isScheduledStoreOpen(latestSettings);
+            const matchesOpen = latestSettings.manualOverride === 'open' && scheduled.isOpen;
+            const matchesClosed = latestSettings.manualOverride === 'closed' && !scheduled.isOpen;
+            if (matchesOpen || matchesClosed) {
+              api.updateStoreSettings({
+                manualOverride: null,
+                isManuallyClosed: false,
+                manualCloseReason: '',
+              }).then((cleared) => setStoreSettings(cleared)).catch(() => {});
+              return;
+            }
+          }
+          setStoreSettings(latestSettings);
+        }
       }).catch(() => {});
     }, 3500);
 
@@ -147,29 +169,41 @@ export default function App() {
     setStoreSettings(current);
   }, []);
 
-  // Quick toggle shop from header
+  // Quick toggle shop from header with manual override conflict resolution
   const handleQuickToggleShop = async () => {
-    if (storeSettings.isManuallyClosed) {
-      if (window.confirm('Open shop for the day? Normal stock availability will be restored.')) {
+    const currentStatus = isStoreCurrentlyOpen(storeSettings);
+    const scheduled = isScheduledStoreOpen(storeSettings);
+    const isCurrentlyOpen = currentStatus.isOpen;
+
+    if (isCurrentlyOpen) {
+      // Store is currently open -> user wants to CLOSE
+      const willOverride = scheduled.isOpen;
+      const confirmMsg = willOverride
+        ? 'Close shop now? A manual operating hours override will be in place until scheduled closing time.'
+        : 'Close shop? Store will return to scheduled hours.';
+      if (window.confirm(confirmMsg)) {
+        await api.updateStoreSettings({
+          isManuallyClosed: true,
+          manualOverride: willOverride ? 'closed' : null,
+          manualCloseReason: 'Closed by manager override',
+          bannerMessage: 'Notice: Shop is temporarily closed by manager. Online ordering is paused.',
+        });
+        await refreshSettings();
+      }
+    } else {
+      // Store is currently closed -> user wants to OPEN
+      const willOverride = !scheduled.isOpen;
+      const confirmMsg = willOverride
+        ? 'Open shop now? A manual operating hours override will be in place until scheduled opening hours.'
+        : 'Open shop for orders? Store will follow normal schedule.';
+      if (window.confirm(confirmMsg)) {
         await api.updateStoreSettings({
           isManuallyClosed: false,
+          manualOverride: willOverride ? 'open' : null,
           manualCloseReason: '',
           bannerMessage: '',
         });
-        await Promise.all(menuItems.map((item) => api.updateMenuItemSoldOut(item.id, false)));
         await refreshSettings();
-        await refreshMenu();
-      }
-    } else {
-      if (window.confirm('Close shop for the day? All items will be marked sold out and customer app will display closed notice.')) {
-        await api.updateStoreSettings({
-          isManuallyClosed: true,
-          manualCloseReason: 'Closed for the day',
-          bannerMessage: 'Notice: Shop is closed for the day. Online ordering is paused.',
-        });
-        await Promise.all(menuItems.map((item) => api.updateMenuItemSoldOut(item.id, true)));
-        await refreshSettings();
-        await refreshMenu();
       }
     }
   };
