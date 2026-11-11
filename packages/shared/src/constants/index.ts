@@ -38,6 +38,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   // Mains (1-6)
   {
     id: 'main-1',
+    imageUrl: 'dishes/main-1.jpg',
     name: 'Prawn Cream Pasta',
     chineseName: '奶油虾面',
     category: 'mains',
@@ -51,6 +52,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'main-2',
+    imageUrl: 'dishes/main-2.jpg',
     name: 'Bacon Mushroom Aglio Olio',
     chineseName: '培根蘑菇蒜香面',
     category: 'mains',
@@ -63,6 +65,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'main-3',
+    imageUrl: 'dishes/main-3.jpg',
     name: 'Truffle Bacon Carbonara',
     chineseName: '松露培根意面',
     category: 'mains',
@@ -75,6 +78,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'main-4',
+    imageUrl: 'dishes/main-4.jpg',
     name: 'Pork Sausage Tomato Pasta',
     chineseName: '番茄香肠面',
     category: 'mains',
@@ -87,6 +91,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'main-5',
+    imageUrl: 'dishes/main-5.jpg',
     name: 'Tomato Bacon Burrata Pasta',
     chineseName: '番茄培根奶酪意面',
     category: 'mains',
@@ -100,6 +105,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'main-6',
+    imageUrl: 'dishes/main-6.jpg',
     name: 'Big Breakfast',
     chineseName: '超大早餐拼盘',
     category: 'mains',
@@ -112,6 +118,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   // Artisanal Soups (7-9)
   {
     id: 'soup-7',
+    imageUrl: 'dishes/soup-7.jpg',
     name: 'Tomato Soup',
     chineseName: '番茄汤',
     category: 'soups',
@@ -122,6 +129,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'soup-8',
+    imageUrl: 'dishes/soup-8.jpg',
     name: 'Mushroom Soup',
     chineseName: '蘑菇汤',
     category: 'soups',
@@ -132,6 +140,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'soup-9',
+    imageUrl: 'dishes/soup-9.jpg',
     name: 'Prawn Bisque',
     chineseName: '浓郁虾汤',
     category: 'soups',
@@ -144,6 +153,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   // Korean Fried Chicken (10-12)
   {
     id: 'side-10',
+    imageUrl: 'dishes/side-10.jpg',
     name: 'Soy Garlic Korean Fried Chicken',
     chineseName: '酱油蒜香炸鸡',
     category: 'sides',
@@ -154,6 +164,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'side-11',
+    imageUrl: 'dishes/side-11.jpg',
     name: 'Mentaiko Korean Fried Chicken',
     chineseName: '明太子炸鸡',
     category: 'sides',
@@ -164,6 +175,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'side-12',
+    imageUrl: 'dishes/side-12.jpg',
     name: 'Snowy Buttermilk Korean Fried Chicken',
     chineseName: '奶油芝士炸鸡',
     category: 'sides',
@@ -176,6 +188,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   // Bread Items (13-15)
   {
     id: 'side-13',
+    imageUrl: 'dishes/side-13.jpg',
     name: 'Sausage Pizza',
     chineseName: '香肠披萨',
     category: 'sides',
@@ -186,6 +199,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'side-14',
+    imageUrl: 'dishes/side-14.jpg',
     name: 'Truffle Mushroom Focaccia',
     chineseName: '松露蘑菇佛卡夏',
     category: 'sides',
@@ -196,6 +210,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'side-15',
+    imageUrl: 'dishes/side-15.jpg',
     name: 'Garlic Bread (2pcs)',
     chineseName: '蒜香面包 (2片)',
     category: 'sides',
@@ -208,6 +223,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   // Fried Items (16-19)
   {
     id: 'side-16',
+    imageUrl: 'dishes/side-16.jpg',
     name: 'French Fries',
     chineseName: '薯条',
     category: 'sides',
@@ -218,6 +234,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'side-17',
+    imageUrl: 'dishes/side-17.jpg',
     name: 'Cheesy Truffle Fries',
     chineseName: '松露芝士薯条',
     category: 'sides',
@@ -228,6 +245,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'side-18',
+    imageUrl: 'dishes/side-18.jpg',
     name: 'Mentaiko Fries',
     chineseName: '明太子薯条',
     category: 'sides',
@@ -238,6 +256,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'side-19',
+    imageUrl: 'dishes/side-19.jpg',
     name: 'Onion Rings',
     chineseName: '酥炸洋葱圈',
     category: 'sides',
@@ -249,19 +268,32 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
 ];
 
 export const INITIAL_ADDONS: AddOnOption[] = [
-  { id: 'addon-scrambled-egg', name: 'Scrambled Egg', chineseName: '滑蛋', price: 1.0, category: 'protein' },
-  { id: 'addon-poached-egg', name: 'Poached Egg', chineseName: '水波蛋', price: 1.0, category: 'protein' },
-  { id: 'addon-bacon', name: 'Bacon (1pc)', chineseName: '培根', price: 1.0, category: 'protein' },
-  { id: 'addon-cherry-tomatoes', name: 'Cherry Tomatoes', chineseName: '小番茄', price: 1.0, category: 'staple' },
-  { id: 'addon-prawns', name: 'Prawns (2pcs)', chineseName: '鲜虾 (2只)', price: 1.0, category: 'protein' },
-  { id: 'addon-extra-pasta', name: 'Extra Pasta', chineseName: '加面', price: 2.0, category: 'staple' },
-  { id: 'addon-sauteed-mushrooms', name: 'Sautéed Mushrooms', chineseName: '蒜炒蘑菇', price: 2.0, category: 'staple' },
-  { id: 'addon-pork-sausage', name: 'Pork Sausage', chineseName: '猪肉香肠', price: 2.0, category: 'protein' },
-  { id: 'addon-mesclun-salad', name: 'Mesclun Salad', chineseName: '嫩叶沙拉', price: 2.0, category: 'staple' },
-  { id: 'addon-burrata', name: 'Burrata Cheese', chineseName: '布拉塔奶酪', price: 2.5, category: 'protein' },
-  { id: 'addon-sauce-mentaiko', name: 'Extra Sauce (Mentaiko)', chineseName: '加酱 (明太子)', price: 0.5, category: 'sauce' },
-  { id: 'addon-sauce-truffle', name: 'Extra Sauce (Truffle)', chineseName: '加酱 (松露)', price: 0.5, category: 'sauce' },
-  { id: 'addon-takeaway-box', name: 'Takeaway Box', chineseName: '打包盒', price: 0.3, category: 'packaging' },
+  { id: 'addon-scrambled-egg',
+    name: 'Scrambled Egg', chineseName: '滑蛋', price: 1.0, category: 'protein' },
+  { id: 'addon-poached-egg',
+    name: 'Poached Egg', chineseName: '水波蛋', price: 1.0, category: 'protein' },
+  { id: 'addon-bacon',
+    name: 'Bacon (1pc)', chineseName: '培根', price: 1.0, category: 'protein' },
+  { id: 'addon-cherry-tomatoes',
+    name: 'Cherry Tomatoes', chineseName: '小番茄', price: 1.0, category: 'staple' },
+  { id: 'addon-prawns',
+    name: 'Prawns (2pcs)', chineseName: '鲜虾 (2只)', price: 1.0, category: 'protein' },
+  { id: 'addon-extra-pasta',
+    name: 'Extra Pasta', chineseName: '加面', price: 2.0, category: 'staple' },
+  { id: 'addon-sauteed-mushrooms',
+    name: 'Sautéed Mushrooms', chineseName: '蒜炒蘑菇', price: 2.0, category: 'staple' },
+  { id: 'addon-pork-sausage',
+    name: 'Pork Sausage', chineseName: '猪肉香肠', price: 2.0, category: 'protein' },
+  { id: 'addon-mesclun-salad',
+    name: 'Mesclun Salad', chineseName: '嫩叶沙拉', price: 2.0, category: 'staple' },
+  { id: 'addon-burrata',
+    name: 'Burrata Cheese', chineseName: '布拉塔奶酪', price: 2.5, category: 'protein' },
+  { id: 'addon-sauce-mentaiko',
+    name: 'Extra Sauce (Mentaiko)', chineseName: '加酱 (明太子)', price: 0.5, category: 'sauce' },
+  { id: 'addon-sauce-truffle',
+    name: 'Extra Sauce (Truffle)', chineseName: '加酱 (松露)', price: 0.5, category: 'sauce' },
+  { id: 'addon-takeaway-box',
+    name: 'Takeaway Box', chineseName: '打包盒', price: 0.3, category: 'packaging' },
 ];
 
 export const DEFAULT_DAY_SCHEDULES: DaySchedule[] = [

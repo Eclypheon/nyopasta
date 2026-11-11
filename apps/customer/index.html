@@ -2,14 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/jpeg" href="/logo.jpg" />
+    <link rel="icon" type="image/jpeg" href="./logo.jpg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="NYO Pasta" />
     <meta name="theme-color" content="#E2583E" />
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="apple-touch-icon" href="/logo.jpg" />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="apple-touch-icon" href="./logo.jpg" />
     <title>NYO Pasta | Not Your Ordinary Pasta</title>
   </head>
   <body class="bg-cream text-navy antialiased selection:bg-terracotta selection:text-white">
@@ -18,7 +18,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch((err) => {
+          navigator.serviceWorker.register('./sw.js').catch((err) => {
             console.log('SW registration error:', err);
           });
         });

@@ -23,12 +23,15 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="bg-navy text-white px-4 py-3 sticky top-0 z-30 shadow-md flex items-center justify-between">
+    <header className="bg-navy text-white px-4 py-3 sticky top-0 z-40 shadow-md flex items-center justify-between border-b border-navy-900">
       <div className="flex items-center gap-3">
         <img
-          src="/stamp-darkblue.png"
+          src={`${import.meta.env.BASE_URL}stamp-darkblue.png`}
           alt="NYO Pasta"
           className="w-9 h-9 rounded-full bg-white p-0.5 object-contain shadow-xs"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}logo.jpg`;
+          }}
         />
         <div>
           <div className="flex items-center gap-2">

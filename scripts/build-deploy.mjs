@@ -64,12 +64,12 @@ const portalHtml = `<!DOCTYPE html>
 </head>
 <body>
   <div class="card">
-    <img src="/nyopasta/customer/logo.jpg" alt="NYO Pasta Logo" class="logo" />
+    <img src="customer/logo.jpg" alt="NYO Pasta Logo" class="logo" />
     <h1>NYO PASTA</h1>
     <p class="subtitle">Not Your Ordinary Pasta · Toa Payoh Palm Spring #01-54</p>
     
     <div class="btn-group">
-      <a href="/nyopasta/customer/" class="app-btn btn-customer">
+      <a href="customer/" class="app-btn btn-customer">
         <div style="text-align: left;">
           <div>Customer Ordering PWA</div>
           <div style="font-size: 11px; opacity: 0.85; font-weight: 400; margin-top: 2px;">Menu, Dine-in/Takeaway & Virtual Loyalty Card</div>
@@ -77,7 +77,7 @@ const portalHtml = `<!DOCTYPE html>
         <span class="badge">Open →</span>
       </a>
 
-      <a href="/nyopasta/admin/" class="app-btn btn-admin">
+      <a href="admin/" class="app-btn btn-admin">
         <div style="text-align: left;">
           <div>Kitchen & Admin PWA</div>
           <div style="font-size: 11px; opacity: 0.85; font-weight: 400; margin-top: 2px;">Live Orders, 1-Tap Sold Out & Schedule</div>

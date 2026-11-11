@@ -52,7 +52,7 @@ export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ onOpenQrModal }) => {
         {/* Card Header */}
         <div className="text-center relative z-10 pb-4 border-b border-[#E8DEC9]">
           <div className="flex items-center justify-center gap-2 mb-1">
-            <img src="/logo.jpg" alt="NYO Pasta" className="w-8 h-8 rounded-full border border-terracotta object-cover" />
+            <img src={`${import.meta.env.BASE_URL}logo.jpg`} alt="NYO Pasta" className="w-8 h-8 rounded-full border border-terracotta object-cover" />
             <h2 className="text-xl font-black text-terracotta tracking-wider">NYO PASTA</h2>
           </div>
           <p className="text-[11px] font-bold text-navy/70 tracking-wide uppercase">
@@ -121,7 +121,7 @@ export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ onOpenQrModal }) => {
                     {/* If stamped: show the circular dark blue monochrome stamp */}
                     {isStamped && (
                       <img
-                        src="/stamp-darkblue.png"
+                        src={`${import.meta.env.BASE_URL}stamp-darkblue.png`}
                         alt={`Stamp ${spotNum}`}
                         className={`absolute inset-0 w-full h-full object-cover p-0.5 filter drop-shadow-xs transition-transform duration-300 ${
                           isRedeemed ? 'opacity-30' : 'opacity-95'

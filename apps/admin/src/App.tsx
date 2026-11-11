@@ -40,12 +40,7 @@ export default function App() {
     });
 
     api.getOrders().then((initialOrders) => {
-      if (initialOrders && initialOrders.length > 0) {
-        setOrders(initialOrders);
-      } else {
-        // Seed default starter orders for kitchen queue demonstration
-        seedInitialSampleOrders();
-      }
+      setOrders(initialOrders || []);
     });
 
     // 2. Realtime subscriptions
@@ -78,118 +73,6 @@ export default function App() {
       window.removeEventListener('touchstart', handleFirstInteraction);
     };
   }, []);
-
-  // Seed sample kitchen orders if fresh database has no orders yet
-  const seedInitialSampleOrders = async () => {
-    const existing = await api.getOrders();
-    if (existing.length > 0) return;
-
-    // Order 1: Oldest active, UNPAID (Pay at Counter), Dine-in
-    await api.createOrder({
-      customerName: 'Marcus Lim',
-      customerContact: '91234567',
-      isGuest: false,
-      fulfillmentType: 'dine_in',
-      takeawayFee: 0,
-      subtotal: 14.5,
-      discountAmount: 0,
-      total: 14.5,
-      paymentMethod: 'counter',
-      paymentStatus: 'unpaid',
-      fulfillmentStatus: 'received',
-      mainsCount: 1,
-      stampsEarned: 1,
-      items: [
-        {
-          id: 'item_seed_1a',
-          menuItemId: 'main-1',
-          name: 'Prawn Cream Pasta',
-          chineseName: '奶油虾面',
-          category: 'mains',
-          isKidPortion: false,
-          unitPrice: 8.5,
-          quantity: 1,
-          selectedAddOns: [
-            {
-              id: 'addon-scrambled-egg',
-              name: 'Scrambled Egg',
-              chineseName: '滑蛋',
-              price: 1.0,
-              quantity: 1,
-            },
-            {
-              id: 'addon-sauce-mentaiko',
-              name: 'Extra Sauce (Mentaiko)',
-              chineseName: '加酱 (明太子)',
-              price: 0.5,
-              quantity: 1,
-            },
-          ],
-          specialInstructions: 'Less spicy please',
-          itemTotal: 10.0,
-        },
-        {
-          id: 'item_seed_1b',
-          menuItemId: 'side-10',
-          name: 'Soy Garlic Korean Fried Chicken',
-          chineseName: '酱油蒜香炸鸡',
-          category: 'sides',
-          isKidPortion: false,
-          unitPrice: 4.5,
-          quantity: 1,
-          selectedAddOns: [],
-          itemTotal: 4.5,
-        },
-      ],
-    });
-
-    // Order 2: Newer, PAID (PayNow), Takeaway
-    await api.createOrder({
-      customerName: 'Sarah Tan',
-      customerContact: '98765432',
-      isGuest: true,
-      fulfillmentType: 'takeaway',
-      takeawayFee: 0.3,
-      subtotal: 11.0,
-      discountAmount: 0,
-      total: 11.3,
-      paymentMethod: 'paynow',
-      paymentStatus: 'paid',
-      fulfillmentStatus: 'preparing',
-      mainsCount: 1,
-      stampsEarned: 1,
-      items: [
-        {
-          id: 'item_seed_2a',
-          menuItemId: 'main-2',
-          name: 'Bacon Mushroom Aglio Olio',
-          chineseName: '培根蘑菇蒜香面',
-          category: 'mains',
-          isKidPortion: false,
-          unitPrice: 7.5,
-          quantity: 1,
-          selectedAddOns: [],
-          itemTotal: 7.5,
-        },
-        {
-          id: 'item_seed_2b',
-          menuItemId: 'side-14',
-          name: 'Truffle Mushroom Focaccia',
-          chineseName: '松露蘑菇佛卡夏',
-          category: 'sides',
-          isKidPortion: false,
-          unitPrice: 3.5,
-          quantity: 1,
-          selectedAddOns: [],
-          itemTotal: 3.5,
-        },
-      ],
-    });
-
-    // Refresh state
-    const refreshed = await api.getOrders();
-    setOrders(refreshed);
-  };
 
   const refreshMenu = useCallback(async () => {
     const items = await api.getMenuItems();

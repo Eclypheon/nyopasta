@@ -51,7 +51,17 @@ class LocalReactiveStore {
     if (typeof window !== 'undefined') {
       try {
         const savedMenu = localStorage.getItem('nyo_local_menu');
-        if (savedMenu) this.menuItems = JSON.parse(savedMenu);
+        if (savedMenu) {
+          try {
+            const parsed: MenuItem[] = JSON.parse(savedMenu);
+            this.menuItems = INITIAL_MENU_ITEMS.map((init) => {
+              const saved = parsed.find((p) => p.id === init.id);
+              return saved ? { ...init, isSoldOut: saved.isSoldOut } : init;
+            });
+          } catch {
+            this.menuItems = [...INITIAL_MENU_ITEMS];
+          }
+        }
 
         const savedSettings = localStorage.getItem('nyo_local_settings');
         if (savedSettings) this.storeSettings = JSON.parse(savedSettings);
