@@ -198,9 +198,6 @@ class LocalReactiveStore {
 
   updateStoreSettings(settings: Partial<StoreSettings>): StoreSettings {
     this.storeSettings = { ...this.storeSettings, ...settings, updatedAt: new Date().toISOString() };
-    if (settings.isManuallyClosed) {
-      this.setAllSoldOut(true);
-    }
     this.save();
     this.notifySettings();
     return { ...this.storeSettings };
@@ -589,6 +586,7 @@ export const api = {
       const remoteSettings: StoreSettings = {
         id: doc.$id,
         isManuallyClosed: Boolean(doc.isManuallyClosed),
+        manualOverride: doc.manualOverride || null,
         manualCloseReason: doc.manualCloseReason || '',
         bannerMessage: doc.bannerMessage || '',
         schedule: JSON.parse(doc.scheduleJson),
@@ -617,6 +615,7 @@ export const api = {
     try {
       const payload: any = {};
       if (settings.isManuallyClosed !== undefined) payload.isManuallyClosed = Boolean(settings.isManuallyClosed);
+      if (settings.manualOverride !== undefined) payload.manualOverride = settings.manualOverride;
       if (settings.manualCloseReason !== undefined) payload.manualCloseReason = settings.manualCloseReason;
       if (settings.bannerMessage !== undefined) payload.bannerMessage = settings.bannerMessage;
       if (settings.schedule !== undefined) payload.scheduleJson = JSON.stringify(settings.schedule);
@@ -630,10 +629,21 @@ export const api = {
       if (settings.payNowQrUrl !== undefined) payload.payNowQrUrl = settings.payNowQrUrl;
       if (settings.takeawayFeePerItem !== undefined) payload.takeawayFeePerItem = Number(settings.takeawayFeePerItem) || 0.3;
 
-      const doc: any = await databases.updateDocument(DB_ID, 'store_settings', 'current_store_settings', payload);
+      let doc: any;
+      try {
+        doc = await databases.updateDocument(DB_ID, 'store_settings', 'current_store_settings', payload);
+      } catch (err: any) {
+        if (err?.code === 404 || err?.message?.includes('not found')) {
+          doc = await databases.createDocument(DB_ID, 'store_settings', 'current_store_settings', payload);
+        } else {
+          throw err;
+        }
+      }
+
       const remoteSettings: StoreSettings = {
         id: doc.$id,
         isManuallyClosed: Boolean(doc.isManuallyClosed),
+        manualOverride: doc.manualOverride || null,
         manualCloseReason: doc.manualCloseReason || '',
         bannerMessage: doc.bannerMessage || '',
         schedule: JSON.parse(doc.scheduleJson),

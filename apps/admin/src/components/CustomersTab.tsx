@@ -6,8 +6,6 @@ import {
   Clock,
   PlusCircle,
   Ban,
-  ChevronDown,
-  ChevronUp,
   Trash2,
   Copy,
   Check,
@@ -205,19 +203,18 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
         /* Compact Users Table with Sticky Frozen Name Column */
         <div className="bg-white rounded-xl border border-gray-200 shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[420px] sm:min-w-full">
+            <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-100/90 border-b border-gray-200 text-[10px] font-bold text-gray-500 uppercase tracking-wider select-none">
                   {/* Frozen Sticky Name Column (fits ~12 chars) */}
-                  <th className="sticky left-0 bg-gray-100 z-20 py-2 px-2 text-left w-[96px] min-w-[96px] max-w-[96px] border-r border-gray-200 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">
+                  <th className="sticky left-0 bg-gray-100 z-20 py-1.5 px-1.5 text-left w-[82px] min-w-[82px] max-w-[82px] border-r border-gray-200 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">
                     Name
                   </th>
-                  <th className="py-2 px-1 text-center w-14 min-w-[54px]">Orders</th>
-                  <th className="py-2 px-1 text-center w-14 min-w-[54px]">$3.5 Side</th>
-                  <th className="py-2 px-1 text-center w-14 min-w-[54px]">$4.5 Side</th>
-                  <th className="py-2 px-1 text-center w-14 min-w-[54px]">$8.5 Main</th>
-                  <th className="py-2 px-1.5 text-center w-20 min-w-[74px]">Stamps</th>
-                  <th className="py-2 px-1 text-center w-6 min-w-[24px]"></th>
+                  <th className="py-1.5 px-0.5 text-center w-[42px] min-w-[42px]">Orders</th>
+                  <th className="py-1.5 px-0.5 text-center w-[48px] min-w-[48px]">$3.5 Side</th>
+                  <th className="py-1.5 px-0.5 text-center w-[48px] min-w-[48px]">$4.5 Side</th>
+                  <th className="py-1.5 px-0.5 text-center w-[48px] min-w-[48px]">$8.5 Main</th>
+                  <th className="py-1.5 px-1 text-center w-[64px] min-w-[64px]">Stamps</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-xs">
@@ -256,7 +253,7 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
                       >
                         {/* Column 1: Name (Frozen Sticky Left, fits ~12 chars) */}
                         <td
-                          className={`sticky left-0 z-10 py-1 px-2 w-[96px] min-w-[96px] max-w-[96px] border-r border-gray-200/80 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] transition-colors ${
+                          className={`sticky left-0 z-10 py-1 px-1.5 w-[82px] min-w-[82px] max-w-[82px] border-r border-gray-200/80 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] transition-colors ${
                             isExpanded
                               ? 'bg-[#fef9ee]'
                               : profile.isBlacklisted
@@ -280,14 +277,14 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
                         </td>
 
                         {/* Column 2: Total Orders */}
-                        <td className="py-1 px-1 text-center text-gray-800 font-bold text-xs">
+                        <td className="py-1 px-0.5 text-center text-gray-800 font-bold text-xs">
                           {stats.totalOrders}
                         </td>
 
                         {/* Column 3: 3.5 Sides */}
-                        <td className="py-1 px-1 text-center text-gray-700 font-medium text-xs">
+                        <td className="py-1 px-0.5 text-center text-gray-700 font-medium text-xs">
                           {profile.voucherSide350Count ? (
-                            <span className="bg-amber-100 text-amber-900 font-bold px-1.5 py-0.2 rounded text-[10px]">
+                            <span className="bg-amber-100 text-amber-900 font-bold px-1 py-0.2 rounded text-[10px]">
                               {profile.voucherSide350Count}
                             </span>
                           ) : (
@@ -296,9 +293,9 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
                         </td>
 
                         {/* Column 4: 4.5 Sides */}
-                        <td className="py-1 px-1 text-center text-gray-700 font-medium text-xs">
+                        <td className="py-1 px-0.5 text-center text-gray-700 font-medium text-xs">
                           {profile.voucherSide450Count ? (
-                            <span className="bg-amber-100 text-amber-900 font-bold px-1.5 py-0.2 rounded text-[10px]">
+                            <span className="bg-amber-100 text-amber-900 font-bold px-1 py-0.2 rounded text-[10px]">
                               {profile.voucherSide450Count}
                             </span>
                           ) : (
@@ -307,9 +304,9 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
                         </td>
 
                         {/* Column 5: 8.5 Main */}
-                        <td className="py-1 px-1 text-center text-gray-700 font-medium text-xs">
+                        <td className="py-1 px-0.5 text-center text-gray-700 font-medium text-xs">
                           {profile.voucherMeal850Count ? (
-                            <span className="bg-amber-100 text-amber-900 font-bold px-1.5 py-0.2 rounded text-[10px]">
+                            <span className="bg-amber-100 text-amber-900 font-bold px-1 py-0.2 rounded text-[10px]">
                               {profile.voucherMeal850Count}
                             </span>
                           ) : (
@@ -318,27 +315,18 @@ export function CustomersTab({ orders = [], onSelectCustomerForCredit }: Custome
                         </td>
 
                         {/* Column 6: Current Stamp Count (x/12) */}
-                        <td className="py-1 px-1.5 text-center">
+                        <td className="py-1 px-1 text-center">
                           <span className="inline-flex items-center gap-0.5 bg-amber-50 text-amber-900 font-black text-[11px] px-1.5 py-0.5 rounded-md border border-amber-200">
                             <Award className="w-2.5 h-2.5 text-amber-600 shrink-0" />
                             {profile.currentStampCount}/12
                           </span>
-                        </td>
-
-                        {/* Column 7: Expand Chevron */}
-                        <td className="py-1 px-1 text-center text-gray-400">
-                          {isExpanded ? (
-                            <ChevronUp className="w-3.5 h-3.5 mx-auto text-terracotta" />
-                          ) : (
-                            <ChevronDown className="w-3.5 h-3.5 mx-auto" />
-                          )}
                         </td>
                       </tr>
 
                       {/* Expandable Details Section (2 Additional Rows) */}
                       {isExpanded && (
                         <tr className="bg-amber-50/30 border-b border-amber-100/60">
-                          <td colSpan={7} className="p-2 sm:p-3">
+                          <td colSpan={6} className="p-2 sm:p-3">
                             <div className="space-y-2.5 bg-white p-3 rounded-xl border border-amber-200/80 shadow-2xs">
                               {/* Expanded Row 1: ID, Phone, Email, Revenue, Lifetime Stamps */}
                               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 pb-2 border-b border-gray-100 text-xs">

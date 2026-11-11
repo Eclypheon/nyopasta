@@ -79,9 +79,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const [previewQrUrl, setPreviewQrUrl] = useState<string>('');
 
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const isDirtyRef = React.useRef(false);
 
-  // Sync with prop changes if updated remotely
+  // Sync with prop changes if updated remotely only when NOT dirty
   useEffect(() => {
+    if (isDirtyRef.current) return;
     if (storeSettings.schedule && storeSettings.schedule.length > 0) {
       setSchedule(storeSettings.schedule);
     }
@@ -136,6 +138,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
   // Toggle day open / closed
   const handleToggleDayOpen = (day: DayOfWeek) => {
+    isDirtyRef.current = true;
     setSchedule((prev) =>
       prev.map((item) => {
         if (item.day !== day) return item;
@@ -159,6 +162,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
   // Add time slot to a day
   const handleAddTimeSlot = (day: DayOfWeek) => {
+    isDirtyRef.current = true;
     setSchedule((prev) =>
       prev.map((item) => {
         if (item.day !== day) return item;
@@ -173,6 +177,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
   // Remove time slot
   const handleRemoveTimeSlot = (day: DayOfWeek, slotIndex: number) => {
+    isDirtyRef.current = true;
     setSchedule((prev) =>
       prev.map((item) => {
         if (item.day !== day) return item;
@@ -193,6 +198,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     field: 'open' | 'close',
     value: string
   ) => {
+    isDirtyRef.current = true;
     setSchedule((prev) =>
       prev.map((item) => {
         if (item.day !== day) return item;
@@ -211,6 +217,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   // Reset to default reference schedule
   const handleResetToDefaults = () => {
     if (window.confirm('Reset schedule to reference defaults (Mon/Thu closed, Tue/Wed/Fri 10am-2pm & 6pm-9pm, Sat 9am-2pm & 6pm-9pm, Sun 9am-2pm)?')) {
+      isDirtyRef.current = true;
       setSchedule(DEFAULT_DAY_SCHEDULES);
       setEnablePayNow(true);
       setEnableStripe(false);
@@ -239,6 +246,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         bannerMessage: bannerMessage.trim(),
         isManuallyClosed,
       });
+      isDirtyRef.current = false;
       setSaveStatus('saved');
       onSettingsSaved?.();
       setTimeout(() => setSaveStatus('idle'), 3000);

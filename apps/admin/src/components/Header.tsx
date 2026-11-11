@@ -39,22 +39,22 @@ export const Header: React.FC<HeaderProps> = ({
       }}
     >
       {/* Left: Brand Logo & Title in single line with Status Pill */}
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
         <img
           src={`${import.meta.env.BASE_URL}admin-icon.png`}
           alt="NYO Pasta"
-          className="w-8 h-8 rounded-full object-contain shadow-xs shrink-0"
-          style={{ width: 32, height: 32, minWidth: 32, minHeight: 32 }}
+          className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-contain shadow-xs shrink-0"
+          style={{ width: 28, height: 28, minWidth: 28, minHeight: 28 }}
           onError={(e) => {
             (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}logo.jpg`;
           }}
         />
-        <div className="flex items-center gap-2 min-w-0">
-          <h1 className="font-black text-sm tracking-wide leading-tight whitespace-nowrap text-white">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <h1 className="font-black text-xs sm:text-sm tracking-wide leading-tight whitespace-nowrap text-white">
             NYOPASTA ADMIN
           </h1>
           <span
-            className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 whitespace-nowrap shadow-xs ${
+            className={`text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 whitespace-nowrap shadow-xs ${
               isEffectiveOpen
                 ? isOverridden
                   ? 'bg-amber-500 text-white'
@@ -71,10 +71,10 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {isEffectiveOpen
               ? isOverridden
-                ? 'Open (Override)'
+                ? 'Open (Ovr)'
                 : 'Live'
               : isOverridden
-              ? 'Closed (Override)'
+              ? 'Closed (Ovr)'
               : 'Closed'}
           </span>
         </div>
