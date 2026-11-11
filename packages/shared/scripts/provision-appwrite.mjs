@@ -109,7 +109,7 @@ async function run() {
   await ensureStringAttribute('menu_items', 'description', 1000, false);
   await ensureStringAttribute('menu_items', 'chineseDescription', 1000, false);
   await ensureStringAttribute('menu_items', 'tag', 32, false);
-  await ensureBooleanAttribute('menu_items', 'isSoldOut', true, false);
+  await ensureBooleanAttribute('menu_items', 'isSoldOut', false, false);
   await ensureStringAttribute('menu_items', 'imageUrl', 512, false);
 
   // 4.2 orders collection
@@ -124,19 +124,19 @@ async function run() {
   await ensureStringAttribute('orders', 'customerId', 64, false);
   await ensureStringAttribute('orders', 'customerName', 128, true);
   await ensureStringAttribute('orders', 'customerContact', 64, true);
-  await ensureBooleanAttribute('orders', 'isGuest', true, true);
+  await ensureBooleanAttribute('orders', 'isGuest', false, true);
   await ensureStringAttribute('orders', 'itemsJson', 10000, true);
   await ensureStringAttribute('orders', 'fulfillmentType', 32, true);
-  await ensureFloatAttribute('orders', 'takeawayFee', true, 0);
+  await ensureFloatAttribute('orders', 'takeawayFee', false, 0);
   await ensureFloatAttribute('orders', 'subtotal', true);
-  await ensureFloatAttribute('orders', 'discountAmount', true, 0);
+  await ensureFloatAttribute('orders', 'discountAmount', false, 0);
   await ensureStringAttribute('orders', 'discountDescription', 256, false);
   await ensureFloatAttribute('orders', 'total', true);
   await ensureStringAttribute('orders', 'paymentMethod', 32, true);
   await ensureStringAttribute('orders', 'paymentStatus', 32, true);
   await ensureStringAttribute('orders', 'fulfillmentStatus', 32, true);
-  await ensureIntegerAttribute('orders', 'mainsCount', true, 0);
-  await ensureIntegerAttribute('orders', 'stampsEarned', true, 0);
+  await ensureIntegerAttribute('orders', 'mainsCount', false, 0);
+  await ensureIntegerAttribute('orders', 'stampsEarned', false, 0);
   await ensureIntegerAttribute('orders', 'redeemedMilestone', false);
 
   // 4.3 profiles collection
@@ -152,15 +152,15 @@ async function run() {
   await ensureStringAttribute('profiles', 'name', 128, true);
   await ensureStringAttribute('profiles', 'email', 128, false);
   await ensureStringAttribute('profiles', 'phone', 32, false);
-  await ensureStringAttribute('profiles', 'role', 32, true, 'customer');
-  await ensureIntegerAttribute('profiles', 'currentStampCount', true, 0);
-  await ensureIntegerAttribute('profiles', 'completedCardsCount', true, 0);
-  await ensureStringAttribute('profiles', 'milestonesRedeemedJson', 512, true, '{"stamp4":false,"stamp8":false,"stamp12":false}');
+  await ensureStringAttribute('profiles', 'role', 32, false, 'customer');
+  await ensureIntegerAttribute('profiles', 'currentStampCount', false, 0);
+  await ensureIntegerAttribute('profiles', 'completedCardsCount', false, 0);
+  await ensureStringAttribute('profiles', 'milestonesRedeemedJson', 512, false, '{"stamp4":false,"stamp8":false,"stamp12":false}');
   await ensureStringAttribute('profiles', 'stampHistoryJson', 10000, false, '[]');
   await ensureStringAttribute('profiles', 'lastOrderId', 64, false);
   await ensureStringAttribute('profiles', 'lastOrderSummary', 512, false);
   await ensureStringAttribute('profiles', 'lastOrderDate', 64, false);
-  await ensureIntegerAttribute('profiles', 'totalOrdersCount', true, 0);
+  await ensureIntegerAttribute('profiles', 'totalOrdersCount', false, 0);
 
   // 4.4 store_settings collection
   await ensureCollection('store_settings', 'Store Settings', [
@@ -168,13 +168,15 @@ async function run() {
     Permission.update(Role.team('admin')),
   ]);
 
-  await ensureBooleanAttribute('store_settings', 'isManuallyClosed', true, false);
+  await ensureBooleanAttribute('store_settings', 'isManuallyClosed', false, false);
   await ensureStringAttribute('store_settings', 'manualCloseReason', 256, false);
   await ensureStringAttribute('store_settings', 'bannerMessage', 256, false);
   await ensureStringAttribute('store_settings', 'scheduleJson', 5000, true);
-  await ensureStringAttribute('store_settings', 'payNowUen', 64, true, '202300000A');
-  await ensureStringAttribute('store_settings', 'payNowRecipientName', 128, true, 'NYO PASTA');
-  await ensureFloatAttribute('store_settings', 'takeawayFeePerItem', true, 0.3);
+  await ensureStringAttribute('store_settings', 'payNowUen', 64, false, '202300000A');
+  await ensureStringAttribute('store_settings', 'payNowRecipientName', 128, false, 'NYO PASTA');
+  await ensureStringAttribute('store_settings', 'payNowMobile', 32, false);
+  await ensureStringAttribute('store_settings', 'payNowQrUrl', 512, false);
+  await ensureFloatAttribute('store_settings', 'takeawayFeePerItem', false, 0.3);
 
   console.log('\n--- Step 5: Initial Data Seeding ---');
   await seedInitialData();
@@ -209,54 +211,77 @@ async function ensureCollection(id, name, permissions) {
 }
 
 async function ensureStringAttribute(collectionId, key, size, required, defaultValue = undefined) {
+  const isRequired = defaultValue !== undefined ? false : required;
   try {
     await databases.getAttribute(DB_ID, collectionId, key);
   } catch (err) {
     if (err.code === 404) {
       console.log(`Adding string attribute "${key}" to "${collectionId}"...`);
-      await databases.createStringAttribute(DB_ID, collectionId, key, size, required, defaultValue);
+      await databases.createStringAttribute(DB_ID, collectionId, key, size, isRequired, defaultValue);
       await sleep(300);
     }
   }
 }
 
 async function ensureIntegerAttribute(collectionId, key, required, defaultValue = undefined) {
+  const isRequired = defaultValue !== undefined ? false : required;
   try {
     await databases.getAttribute(DB_ID, collectionId, key);
   } catch (err) {
     if (err.code === 404) {
       console.log(`Adding integer attribute "${key}" to "${collectionId}"...`);
-      await databases.createIntegerAttribute(DB_ID, collectionId, key, required, undefined, undefined, defaultValue);
+      await databases.createIntegerAttribute(DB_ID, collectionId, key, isRequired, undefined, undefined, defaultValue);
       await sleep(300);
     }
   }
 }
 
 async function ensureFloatAttribute(collectionId, key, required, defaultValue = undefined) {
+  const isRequired = defaultValue !== undefined ? false : required;
   try {
     await databases.getAttribute(DB_ID, collectionId, key);
   } catch (err) {
     if (err.code === 404) {
       console.log(`Adding float attribute "${key}" to "${collectionId}"...`);
-      await databases.createFloatAttribute(DB_ID, collectionId, key, required, undefined, undefined, defaultValue);
+      await databases.createFloatAttribute(DB_ID, collectionId, key, isRequired, undefined, undefined, defaultValue);
       await sleep(300);
     }
   }
 }
 
 async function ensureBooleanAttribute(collectionId, key, required, defaultValue = undefined) {
+  const isRequired = defaultValue !== undefined ? false : required;
   try {
     await databases.getAttribute(DB_ID, collectionId, key);
   } catch (err) {
     if (err.code === 404) {
       console.log(`Adding boolean attribute "${key}" to "${collectionId}"...`);
-      await databases.createBooleanAttribute(DB_ID, collectionId, key, required, defaultValue);
+      await databases.createBooleanAttribute(DB_ID, collectionId, key, isRequired, defaultValue);
       await sleep(300);
     }
   }
 }
 
+async function waitForAttributesReady(collectionId, maxRetries = 20) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const { attributes } = await databases.listAttributes(DB_ID, collectionId);
+      const pending = attributes.filter((a) => a.status === 'processing');
+      if (pending.length === 0) {
+        return;
+      }
+      console.log(`Waiting for ${pending.length} attribute(s) in "${collectionId}" to become available...`);
+    } catch {
+      // Continue retrying
+    }
+    await sleep(1000);
+  }
+}
+
 async function seedInitialData() {
+  await waitForAttributesReady('menu_items');
+  await waitForAttributesReady('store_settings');
+
   // Seed menu items
   for (const item of INITIAL_MENU_ITEMS) {
     try {
@@ -296,6 +321,8 @@ async function seedInitialData() {
         scheduleJson: JSON.stringify(DEFAULT_STORE_SETTINGS.schedule),
         payNowUen: DEFAULT_STORE_SETTINGS.payNowUen,
         payNowRecipientName: DEFAULT_STORE_SETTINGS.payNowRecipientName,
+        payNowMobile: DEFAULT_STORE_SETTINGS.payNowMobile || '',
+        payNowQrUrl: DEFAULT_STORE_SETTINGS.payNowQrUrl || '',
         takeawayFeePerItem: DEFAULT_STORE_SETTINGS.takeawayFeePerItem,
       });
     }

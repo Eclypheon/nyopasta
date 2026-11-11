@@ -406,6 +406,8 @@ export const api = {
         schedule: JSON.parse(doc.scheduleJson),
         payNowUen: doc.payNowUen,
         payNowRecipientName: doc.payNowRecipientName,
+        payNowMobile: doc.payNowMobile,
+        payNowQrUrl: doc.payNowQrUrl,
         takeawayFeePerItem: doc.takeawayFeePerItem,
         updatedAt: doc.$updatedAt,
       };
@@ -425,6 +427,8 @@ export const api = {
       if (settings.schedule !== undefined) payload.scheduleJson = JSON.stringify(settings.schedule);
       if (settings.payNowUen !== undefined) payload.payNowUen = settings.payNowUen;
       if (settings.payNowRecipientName !== undefined) payload.payNowRecipientName = settings.payNowRecipientName;
+      if (settings.payNowMobile !== undefined) payload.payNowMobile = settings.payNowMobile;
+      if (settings.payNowQrUrl !== undefined) payload.payNowQrUrl = settings.payNowQrUrl;
       if (settings.takeawayFeePerItem !== undefined) payload.takeawayFeePerItem = settings.takeawayFeePerItem;
 
       const doc: any = await databases.updateDocument(DB_ID, 'store_settings', 'current_store_settings', payload);
@@ -436,6 +440,8 @@ export const api = {
         schedule: JSON.parse(doc.scheduleJson),
         payNowUen: doc.payNowUen,
         payNowRecipientName: doc.payNowRecipientName,
+        payNowMobile: doc.payNowMobile,
+        payNowQrUrl: doc.payNowQrUrl,
         takeawayFeePerItem: doc.takeawayFeePerItem,
         updatedAt: doc.$updatedAt,
       };
