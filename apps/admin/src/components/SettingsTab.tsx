@@ -51,6 +51,12 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       : DEFAULT_DAY_SCHEDULES;
   });
 
+  const [enablePayNow, setEnablePayNow] = useState(
+    storeSettings.enablePayNow !== undefined ? storeSettings.enablePayNow : true
+  );
+  const [enableStripe, setEnableStripe] = useState(
+    Boolean(storeSettings.enableStripe)
+  );
   const [payNowType, setPayNowType] = useState<'mobile' | 'uen'>(
     storeSettings.payNowType || (storeSettings.payNowMobile ? 'mobile' : 'uen')
   );
@@ -79,6 +85,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     if (storeSettings.schedule && storeSettings.schedule.length > 0) {
       setSchedule(storeSettings.schedule);
     }
+    setEnablePayNow(storeSettings.enablePayNow !== undefined ? storeSettings.enablePayNow : true);
+    setEnableStripe(Boolean(storeSettings.enableStripe));
     setPayNowType(storeSettings.payNowType || (storeSettings.payNowMobile ? 'mobile' : 'uen'));
     setPayNowMobile(storeSettings.payNowMobile || '92258003');
     setPayNowUen(storeSettings.payNowUen || '202300000A');
@@ -112,6 +120,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const currentDraftSettings: StoreSettings = {
     ...storeSettings,
     schedule,
+    enablePayNow,
+    enableStripe,
+    enableCounter: true,
     payNowType,
     payNowMobile,
     payNowUen,
@@ -201,6 +212,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const handleResetToDefaults = () => {
     if (window.confirm('Reset schedule to reference defaults (Mon/Thu closed, Tue/Wed/Fri 10am-2pm & 6pm-9pm, Sat 9am-2pm & 6pm-9pm, Sun 9am-2pm)?')) {
       setSchedule(DEFAULT_DAY_SCHEDULES);
+      setEnablePayNow(true);
+      setEnableStripe(false);
       setPayNowType(DEFAULT_STORE_SETTINGS.payNowType || 'mobile');
       setPayNowMobile(DEFAULT_STORE_SETTINGS.payNowMobile || '92258003');
       setPayNowUen(DEFAULT_STORE_SETTINGS.payNowUen);
@@ -215,6 +228,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     try {
       await api.updateStoreSettings({
         schedule,
+        enablePayNow,
+        enableStripe,
+        enableCounter: true,
         payNowType,
         payNowMobile: payNowMobile.trim(),
         payNowUen: payNowUen.trim(),
@@ -425,6 +441,60 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           <Building2 className="w-4 h-4 text-navy" />
           PayNow & Payment Configuration
         </h3>
+
+        {/* Customer Payment Options Selection */}
+        <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-200 space-y-2">
+          <label className="block text-xs font-bold text-gray-800">
+            Payment Methods Offered to Customer
+          </label>
+          <p className="text-[11px] text-gray-500">
+            Choose which payment channels customers can use at checkout. Pay at counter is always available.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+            {/* Pay at Counter (Mandatory & Checked) */}
+            <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-gray-200 cursor-not-allowed opacity-80 select-none shadow-2xs">
+              <input
+                type="checkbox"
+                checked={true}
+                disabled
+                className="w-4 h-4 text-gray-400 rounded accent-terracotta cursor-not-allowed"
+              />
+              <div>
+                <span className="text-xs font-extrabold text-gray-700 block">3. Pay at Counter</span>
+                <span className="text-[10px] text-gray-400">Always active (cash/cashless)</span>
+              </div>
+            </label>
+
+            {/* PayNow QR Code */}
+            <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-gray-200 hover:border-terracotta/40 cursor-pointer select-none shadow-2xs transition-colors">
+              <input
+                type="checkbox"
+                checked={enablePayNow}
+                onChange={(e) => setEnablePayNow(e.target.checked)}
+                className="w-4 h-4 rounded text-terracotta accent-terracotta cursor-pointer"
+              />
+              <div>
+                <span className="text-xs font-extrabold text-gray-900 block">1. PayNow QR</span>
+                <span className="text-[10px] text-gray-500">Dynamic EMVCo QR code</span>
+              </div>
+            </label>
+
+            {/* Stripe Online Payments */}
+            <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-gray-200 hover:border-terracotta/40 cursor-pointer select-none shadow-2xs transition-colors">
+              <input
+                type="checkbox"
+                checked={enableStripe}
+                onChange={(e) => setEnableStripe(e.target.checked)}
+                className="w-4 h-4 rounded text-terracotta accent-terracotta cursor-pointer"
+              />
+              <div>
+                <span className="text-xs font-extrabold text-gray-900 block">2. Stripe Payments</span>
+                <span className="text-[10px] text-gray-500">Credit / Debit card</span>
+              </div>
+            </label>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* PayNow Type Selection */}

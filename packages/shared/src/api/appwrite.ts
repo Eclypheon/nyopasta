@@ -404,6 +404,9 @@ export const api = {
         manualCloseReason: doc.manualCloseReason,
         bannerMessage: doc.bannerMessage,
         schedule: JSON.parse(doc.scheduleJson),
+        enablePayNow: doc.enablePayNow !== undefined ? doc.enablePayNow : true,
+        enableStripe: doc.enableStripe !== undefined ? doc.enableStripe : false,
+        enableCounter: true,
         payNowType: doc.payNowType || (doc.payNowMobile ? 'mobile' : 'uen'),
         payNowUen: doc.payNowUen,
         payNowRecipientName: doc.payNowRecipientName,
@@ -426,6 +429,9 @@ export const api = {
       if (settings.manualCloseReason !== undefined) payload.manualCloseReason = settings.manualCloseReason;
       if (settings.bannerMessage !== undefined) payload.bannerMessage = settings.bannerMessage;
       if (settings.schedule !== undefined) payload.scheduleJson = JSON.stringify(settings.schedule);
+      if (settings.enablePayNow !== undefined) payload.enablePayNow = settings.enablePayNow;
+      if (settings.enableStripe !== undefined) payload.enableStripe = settings.enableStripe;
+      if (settings.enableCounter !== undefined) payload.enableCounter = settings.enableCounter;
       if (settings.payNowType !== undefined) payload.payNowType = settings.payNowType;
       if (settings.payNowUen !== undefined) payload.payNowUen = settings.payNowUen;
       if (settings.payNowRecipientName !== undefined) payload.payNowRecipientName = settings.payNowRecipientName;
@@ -440,6 +446,9 @@ export const api = {
         manualCloseReason: doc.manualCloseReason,
         bannerMessage: doc.bannerMessage,
         schedule: JSON.parse(doc.scheduleJson),
+        enablePayNow: doc.enablePayNow !== undefined ? doc.enablePayNow : true,
+        enableStripe: doc.enableStripe !== undefined ? doc.enableStripe : false,
+        enableCounter: true,
         payNowType: doc.payNowType || (doc.payNowMobile ? 'mobile' : 'uen'),
         payNowUen: doc.payNowUen,
         payNowRecipientName: doc.payNowRecipientName,
@@ -634,6 +643,10 @@ export const api = {
       console.warn('Appwrite updateOrderStatus failed, falling back:', err);
       return localStore.updateOrderStatus(orderId, updates);
     }
+  },
+
+  async cancelOrder(orderId: string): Promise<Order> {
+    return this.updateOrderStatus(orderId, { fulfillmentStatus: 'cancelled' });
   },
 
   async clearOrders(): Promise<void> {

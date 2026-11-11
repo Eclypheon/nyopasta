@@ -1,6 +1,6 @@
 import React from 'react';
 import { CheckCircle2, Award, Utensils, Package, QrCode as QrIcon } from 'lucide-react';
-import { Order } from '@nyopasta/shared';
+import { Order, api } from '@nyopasta/shared';
 
 interface OrderSuccessModalProps {
   order: Order;
@@ -112,6 +112,20 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
           >
             Back to Menu
           </button>
+
+          {order.fulfillmentStatus === 'received' && (
+            <button
+              onClick={async () => {
+                if (window.confirm(`Cancel order ${order.orderNumber}? The kitchen will be alerted immediately.`)) {
+                  await api.cancelOrder(order.id);
+                  onClose();
+                }
+              }}
+              className="w-full text-red-500 hover:text-red-700 text-xs font-bold py-1 transition-colors"
+            >
+              Cancel Order (取消订单)
+            </button>
+          )}
         </div>
       </div>
     </div>

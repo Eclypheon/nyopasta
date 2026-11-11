@@ -181,13 +181,28 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsub();
   }, []);
 
-  // Live subscription to menu items
+  // Live subscription and continuous background polling to menu items & store settings
   const [liveMenuItems, setLiveMenuItems] = useState<MenuItem[]>([]);
   useEffect(() => {
     const unsub = api.subscribeToMenuItems((items) => {
       setLiveMenuItems(items);
     });
-    return () => unsub();
+
+    // Constant 3.5s background polling so out-of-stock items update immediately even if WebSocket sleeping
+    const pollTimer = setInterval(() => {
+      api.getMenuItems().then((items) => {
+        if (items && items.length > 0) setLiveMenuItems(items);
+      }).catch(() => {});
+
+      api.getStoreSettings().then((settings) => {
+        if (settings) setStoreSettings(settings);
+      }).catch(() => {});
+    }, 3500);
+
+    return () => {
+      unsub();
+      clearInterval(pollTimer);
+    };
   }, []);
 
   const storeStatus = isStoreCurrentlyOpen(storeSettings);

@@ -32,6 +32,12 @@ export const OrderHistoryView: React.FC<OrderHistoryViewProps> = ({ onGoToMenu }
             <CheckCircle className="w-2.5 h-2.5" /> Ready for Collection!
           </span>
         );
+      case 'cancelled':
+        return (
+          <span className="bg-red-100 text-red-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1">
+            Cancelled 已取消
+          </span>
+        );
       case 'fulfilled':
       case 'archived':
       default:
@@ -155,7 +161,21 @@ export const OrderHistoryView: React.FC<OrderHistoryViewProps> = ({ onGoToMenu }
               </div>
 
               <div className="flex items-center gap-2">
-                {order.paymentMethod === 'paynow' && order.paymentStatus === 'unpaid' && (
+                {order.fulfillmentStatus === 'received' && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (window.confirm(`Cancel order ${order.orderNumber}? The kitchen will be alerted immediately.`)) {
+                        await api.cancelOrder(order.id);
+                      }
+                    }}
+                    className="text-red-500 hover:text-red-700 font-extrabold text-xs px-2.5 py-1.5 rounded-xl border border-red-200 hover:bg-red-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                )}
+
+                {order.paymentMethod === 'paynow' && order.paymentStatus === 'unpaid' && order.fulfillmentStatus !== 'cancelled' && (
                   <button
                     type="button"
                     onClick={() => setSelectedPayNowOrder(order)}

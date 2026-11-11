@@ -42,7 +42,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
   }, [orders]);
 
   const activeOrders = useMemo(() => {
-    return sortedOrders.filter((o) => ['received', 'preparing', 'ready'].includes(o.fulfillmentStatus));
+    return sortedOrders.filter((o) => ['received', 'preparing', 'ready', 'cancelled'].includes(o.fulfillmentStatus));
   }, [sortedOrders]);
 
   const fulfilledOrders = useMemo(() => {
@@ -386,12 +386,15 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
             const isExpanded = expandedId === order.id;
             const isNew = animatingOrderIds.has(order.id);
             const isUnpaid = order.paymentStatus === 'unpaid';
+            const isCancelled = order.fulfillmentStatus === 'cancelled';
 
             return (
               <div
                 key={order.id}
                 className={`bg-white rounded-xl transition-all duration-200 border-2 overflow-hidden shadow-xs ${
-                  isNew
+                  isCancelled
+                    ? 'border-red-500 bg-red-50/40 ring-4 ring-red-400/20'
+                    : isNew
                     ? 'border-terracotta ring-4 ring-terracotta/20 bg-amber-50/40 animate-pulse'
                     : isOldestActive
                     ? 'border-terracotta shadow-md'
@@ -470,7 +473,9 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
                     {/* Status Pill */}
                     <span
                       className={`text-xs font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
-                        order.fulfillmentStatus === 'received'
+                        order.fulfillmentStatus === 'cancelled'
+                          ? 'bg-red-600 text-white font-black animate-pulse'
+                          : order.fulfillmentStatus === 'received'
                           ? 'bg-blue-50 text-blue-700'
                           : order.fulfillmentStatus === 'preparing'
                           ? 'bg-amber-50 text-amber-700'
@@ -481,7 +486,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
                           : 'bg-gray-100 text-gray-600'
                       }`}
                     >
-                      {order.fulfillmentStatus}
+                      {order.fulfillmentStatus === 'cancelled' ? 'CANCELLED' : order.fulfillmentStatus}
                     </span>
 
                     {/* Expand/Collapse Chevron */}
@@ -601,29 +606,49 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-200">
                       {/* Kitchen workflow progression buttons */}
                       <div className="flex items-center gap-1.5">
-                        {order.fulfillmentStatus === 'received' && (
-                          <button
-                            type="button"
-                            onClick={() => handleStatusStep(order.id, 'preparing')}
-                            className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold rounded-lg transition-colors"
-                          >
-                            Mark Preparing
-                          </button>
-                        )}
-                        {order.fulfillmentStatus === 'preparing' && (
-                          <button
-                            type="button"
-                            onClick={() => handleStatusStep(order.id, 'ready')}
-                            className="px-3 py-1.5 bg-teal-100 hover:bg-teal-200 text-teal-800 text-xs font-bold rounded-lg transition-colors"
-                          >
-                            Mark Ready
-                          </button>
+                        {order.fulfillmentStatus === 'cancelled' ? (
+                          <div className="flex items-center gap-1.5 text-red-700 text-xs font-bold">
+                            <AlertTriangle className="w-4 h-4 text-red-600" />
+                            <span>Customer cancelled before cooking started.</span>
+                          </div>
+                        ) : (
+                          <>
+                            {order.fulfillmentStatus === 'received' && (
+                              <button
+                                type="button"
+                                onClick={() => handleStatusStep(order.id, 'preparing')}
+                                className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold rounded-lg transition-colors"
+                              >
+                                Mark Preparing
+                              </button>
+                            )}
+                            {order.fulfillmentStatus === 'preparing' && (
+                              <button
+                                type="button"
+                                onClick={() => handleStatusStep(order.id, 'ready')}
+                                className="px-3 py-1.5 bg-teal-100 hover:bg-teal-200 text-teal-800 text-xs font-bold rounded-lg transition-colors"
+                              >
+                                Mark Ready
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
 
                       {/* Primary fulfillment actions */}
                       <div className="flex items-center gap-2 ml-auto">
-                        {order.fulfillmentStatus !== 'fulfilled' && order.fulfillmentStatus !== 'archived' && (
+                        {order.fulfillmentStatus === 'cancelled' && (
+                          <button
+                            type="button"
+                            onClick={() => handleArchiveClick(order.id)}
+                            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Acknowledge & Archive (确认并归档)</span>
+                          </button>
+                        )}
+
+                        {order.fulfillmentStatus !== 'fulfilled' && order.fulfillmentStatus !== 'archived' && order.fulfillmentStatus !== 'cancelled' && (
                           <button
                             type="button"
                             onClick={() => handleFulfillClick(order)}

@@ -47,12 +47,22 @@ function CustomerAppContent() {
     handleAuthSuccess,
   } = useCart();
 
-  // Real-time subscription to menu items
+  // Real-time subscription and active polling for live menu items & stock availability
   useEffect(() => {
     const unsub = api.subscribeToMenuItems((items) => {
       setMenuItems(items);
     });
-    return () => unsub();
+
+    const pollTimer = setInterval(() => {
+      api.getMenuItems().then((items) => {
+        if (items && items.length > 0) setMenuItems(items);
+      }).catch(() => {});
+    }, 3500);
+
+    return () => {
+      unsub();
+      clearInterval(pollTimer);
+    };
   }, []);
 
   // Smooth scroll to category

@@ -53,10 +53,25 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
     setIsAuthModalOpen,
   } = useCart();
 
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('paynow');
+  const isPayNowAllowed = storeSettings.enablePayNow !== false;
+  const isStripeAllowed = Boolean(storeSettings.enableStripe);
+
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(() => {
+    if (storeSettings.enablePayNow !== false) return 'paynow';
+    return 'counter';
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [pendingPayNowOrder, setPendingPayNowOrder] = useState<Order | null>(null);
+
+  // Auto-switch payment method if currently selected option becomes disabled in settings
+  React.useEffect(() => {
+    if (paymentMethod === 'paynow' && !isPayNowAllowed) {
+      setPaymentMethod('counter');
+    } else if (paymentMethod === 'stripe' && !isStripeAllowed) {
+      setPaymentMethod(isPayNowAllowed ? 'paynow' : 'counter');
+    }
+  }, [isPayNowAllowed, isStripeAllowed, paymentMethod]);
 
   if (!isOpen && !pendingPayNowOrder) return null;
 
@@ -421,19 +436,27 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
                 <label className="font-extrabold text-xs text-navy uppercase tracking-wide block">
                   Payment Method 支付方式
                 </label>
-                <div className="grid grid-cols-3 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('paynow')}
-                    className={`p-2.5 rounded-xl border text-center flex flex-col items-center gap-1 transition-all ${
-                      paymentMethod === 'paynow'
-                        ? 'border-terracotta bg-terracotta-50 text-terracotta font-extrabold'
-                        : 'border-cream-dark hover:bg-cream-light text-navy font-semibold'
-                    }`}
-                  >
-                    <QrCode className="w-4 h-4" />
-                    <span className="text-[11px]">PayNow</span>
-                  </button>
+                <div className={`grid gap-1.5 ${
+                  (isPayNowAllowed && isStripeAllowed)
+                    ? 'grid-cols-3'
+                    : (isPayNowAllowed || isStripeAllowed)
+                    ? 'grid-cols-2'
+                    : 'grid-cols-1'
+                }`}>
+                  {isPayNowAllowed && (
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('paynow')}
+                      className={`p-2.5 rounded-xl border text-center flex flex-col items-center gap-1 transition-all ${
+                        paymentMethod === 'paynow'
+                          ? 'border-terracotta bg-terracotta-50 text-terracotta font-extrabold'
+                          : 'border-cream-dark hover:bg-cream-light text-navy font-semibold'
+                      }`}
+                    >
+                      <QrCode className="w-4 h-4" />
+                      <span className="text-[11px]">PayNow</span>
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -448,18 +471,20 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
                     <span className="text-[11px]">At Counter</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('stripe')}
-                    className={`p-2.5 rounded-xl border text-center flex flex-col items-center gap-1 transition-all ${
-                      paymentMethod === 'stripe'
-                        ? 'border-terracotta bg-terracotta-50 text-terracotta font-extrabold'
-                        : 'border-cream-dark hover:bg-cream-light text-navy font-semibold'
-                    }`}
-                  >
-                    <CreditCard className="w-4 h-4" />
-                    <span className="text-[11px]">Card</span>
-                  </button>
+                  {isStripeAllowed && (
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('stripe')}
+                      className={`p-2.5 rounded-xl border text-center flex flex-col items-center gap-1 transition-all ${
+                        paymentMethod === 'stripe'
+                          ? 'border-terracotta bg-terracotta-50 text-terracotta font-extrabold'
+                          : 'border-cream-dark hover:bg-cream-light text-navy font-semibold'
+                      }`}
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      <span className="text-[11px]">Card</span>
+                    </button>
+                  )}
                 </div>
 
                 {paymentMethod === 'paynow' && (

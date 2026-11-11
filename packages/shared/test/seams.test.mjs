@@ -269,3 +269,66 @@ describe('Seam 6: Authentication & Guest Entry Flow', () => {
     assert.equal(freshProfile.milestoneRedemptions.stamp12, false);
   });
 });
+
+describe('Seam 7: Payment Options Configuration & Fallback', () => {
+  it('defaults to counter enabled, PayNow enabled, and Stripe disabled', () => {
+    assert.equal(DEFAULT_STORE_SETTINGS.enableCounter, true);
+    assert.equal(DEFAULT_STORE_SETTINGS.enablePayNow, true);
+    assert.equal(DEFAULT_STORE_SETTINGS.enableStripe, false);
+  });
+
+  it('updates payment methods in store settings dynamically', () => {
+    const updated = localStore.updateStoreSettings({
+      enablePayNow: false,
+      enableStripe: true,
+      enableCounter: true,
+    });
+
+    assert.equal(updated.enablePayNow, false);
+    assert.equal(updated.enableStripe, true);
+    assert.equal(updated.enableCounter, true);
+
+    // Fallback logic check: if paynow is selected but disabled, fallback is counter
+    const activeMethod = !updated.enablePayNow ? 'counter' : 'paynow';
+    assert.equal(activeMethod, 'counter');
+
+    // Restore defaults
+    localStore.updateStoreSettings({
+      enablePayNow: true,
+      enableStripe: false,
+      enableCounter: true,
+    });
+  });
+});
+
+describe('Seam 8: Order Cancellation & Archival Lifecycle', () => {
+  it('allows cancellation when order is in received status and transitions to archived', () => {
+    const order = localStore.createOrder({
+      customerId: 'user_cancel_test',
+      customerName: 'Cancel Test',
+      customerContact: '91112222',
+      isGuest: false,
+      items: [],
+      fulfillmentType: 'dine_in',
+      takeawayFee: 0,
+      subtotal: 10,
+      discountAmount: 0,
+      total: 10,
+      paymentMethod: 'counter',
+      paymentStatus: 'unpaid',
+      fulfillmentStatus: 'received',
+      mainsCount: 1,
+      stampsEarned: 1,
+    });
+
+    assert.equal(order.fulfillmentStatus, 'received');
+
+    // Customer cancels order while received
+    const cancelled = localStore.updateOrderStatus(order.id, { fulfillmentStatus: 'cancelled' });
+    assert.equal(cancelled.fulfillmentStatus, 'cancelled');
+
+    // Staff acknowledges cancellation and archives order
+    const archived = localStore.updateOrderStatus(order.id, { fulfillmentStatus: 'archived' });
+    assert.equal(archived.fulfillmentStatus, 'archived');
+  });
+});

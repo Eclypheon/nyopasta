@@ -52,7 +52,7 @@ export type PaymentMethod = 'counter' | 'paynow' | 'stripe';
 
 export type PaymentStatus = 'unpaid' | 'paid';
 
-export type FulfillmentStatus = 'received' | 'preparing' | 'ready' | 'fulfilled' | 'archived';
+export type FulfillmentStatus = 'received' | 'preparing' | 'ready' | 'fulfilled' | 'archived' | 'cancelled';
 
 export interface Order {
   id: string;
@@ -140,6 +140,9 @@ export interface StoreSettings {
   manualCloseReason?: string;
   bannerMessage?: string;
   schedule: DaySchedule[];
+  enablePayNow?: boolean;
+  enableStripe?: boolean;
+  enableCounter?: boolean;
   payNowType?: 'mobile' | 'uen';
   payNowUen: string;
   payNowRecipientName: string;
