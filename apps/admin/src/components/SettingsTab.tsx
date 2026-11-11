@@ -52,7 +52,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   });
 
   const [enablePayNow, setEnablePayNow] = useState(
-    storeSettings.enablePayNow !== undefined ? storeSettings.enablePayNow : true
+    typeof storeSettings.enablePayNow === 'boolean' ? storeSettings.enablePayNow : true
   );
   const [enableStripe, setEnableStripe] = useState(
     Boolean(storeSettings.enableStripe)
@@ -85,7 +85,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     if (storeSettings.schedule && storeSettings.schedule.length > 0) {
       setSchedule(storeSettings.schedule);
     }
-    setEnablePayNow(storeSettings.enablePayNow !== undefined ? storeSettings.enablePayNow : true);
+    setEnablePayNow(typeof storeSettings.enablePayNow === 'boolean' ? storeSettings.enablePayNow : true);
     setEnableStripe(Boolean(storeSettings.enableStripe));
     setPayNowType(storeSettings.payNowType || (storeSettings.payNowMobile ? 'mobile' : 'uen'));
     setPayNowMobile(storeSettings.payNowMobile || '92258003');

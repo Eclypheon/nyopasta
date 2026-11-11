@@ -468,23 +468,25 @@ export const api = {
     if (!isCloudConnected) return localStore.getStoreSettings();
     try {
       const doc: any = await databases.getDocument(DB_ID, 'store_settings', 'current_store_settings');
-      return {
+      const remoteSettings: StoreSettings = {
         id: doc.$id,
-        isManuallyClosed: doc.isManuallyClosed,
-        manualCloseReason: doc.manualCloseReason,
-        bannerMessage: doc.bannerMessage,
+        isManuallyClosed: Boolean(doc.isManuallyClosed),
+        manualCloseReason: doc.manualCloseReason || '',
+        bannerMessage: doc.bannerMessage || '',
         schedule: JSON.parse(doc.scheduleJson),
-        enablePayNow: doc.enablePayNow !== undefined ? doc.enablePayNow : true,
-        enableStripe: doc.enableStripe !== undefined ? doc.enableStripe : false,
+        enablePayNow: typeof doc.enablePayNow === 'boolean' ? doc.enablePayNow : true,
+        enableStripe: typeof doc.enableStripe === 'boolean' ? doc.enableStripe : false,
         enableCounter: true,
         payNowType: doc.payNowType || (doc.payNowMobile ? 'mobile' : 'uen'),
-        payNowUen: doc.payNowUen,
-        payNowRecipientName: doc.payNowRecipientName,
-        payNowMobile: doc.payNowMobile,
-        payNowQrUrl: doc.payNowQrUrl,
-        takeawayFeePerItem: doc.takeawayFeePerItem,
+        payNowUen: doc.payNowUen || '202300000A',
+        payNowRecipientName: doc.payNowRecipientName || 'NYO PASTA',
+        payNowMobile: doc.payNowMobile || '92258003',
+        payNowQrUrl: doc.payNowQrUrl || '',
+        takeawayFeePerItem: typeof doc.takeawayFeePerItem === 'number' ? doc.takeawayFeePerItem : 0.3,
         updatedAt: doc.$updatedAt,
       };
+      localStore.updateStoreSettings(remoteSettings);
+      return remoteSettings;
     } catch (err) {
       console.warn('Appwrite getStoreSettings failed, falling back:', err);
       return localStore.getStoreSettings();
@@ -492,44 +494,47 @@ export const api = {
   },
 
   async updateStoreSettings(settings: Partial<StoreSettings>): Promise<StoreSettings> {
-    if (!isCloudConnected) return localStore.updateStoreSettings(settings);
+    const localUpdated = localStore.updateStoreSettings(settings);
+    if (!isCloudConnected) return localUpdated;
     try {
       const payload: any = {};
-      if (settings.isManuallyClosed !== undefined) payload.isManuallyClosed = settings.isManuallyClosed;
+      if (settings.isManuallyClosed !== undefined) payload.isManuallyClosed = Boolean(settings.isManuallyClosed);
       if (settings.manualCloseReason !== undefined) payload.manualCloseReason = settings.manualCloseReason;
       if (settings.bannerMessage !== undefined) payload.bannerMessage = settings.bannerMessage;
       if (settings.schedule !== undefined) payload.scheduleJson = JSON.stringify(settings.schedule);
-      if (settings.enablePayNow !== undefined) payload.enablePayNow = settings.enablePayNow;
-      if (settings.enableStripe !== undefined) payload.enableStripe = settings.enableStripe;
-      if (settings.enableCounter !== undefined) payload.enableCounter = settings.enableCounter;
+      if (settings.enablePayNow !== undefined) payload.enablePayNow = Boolean(settings.enablePayNow);
+      if (settings.enableStripe !== undefined) payload.enableStripe = Boolean(settings.enableStripe);
+      if (settings.enableCounter !== undefined) payload.enableCounter = Boolean(settings.enableCounter);
       if (settings.payNowType !== undefined) payload.payNowType = settings.payNowType;
       if (settings.payNowUen !== undefined) payload.payNowUen = settings.payNowUen;
       if (settings.payNowRecipientName !== undefined) payload.payNowRecipientName = settings.payNowRecipientName;
       if (settings.payNowMobile !== undefined) payload.payNowMobile = settings.payNowMobile;
       if (settings.payNowQrUrl !== undefined) payload.payNowQrUrl = settings.payNowQrUrl;
-      if (settings.takeawayFeePerItem !== undefined) payload.takeawayFeePerItem = settings.takeawayFeePerItem;
+      if (settings.takeawayFeePerItem !== undefined) payload.takeawayFeePerItem = Number(settings.takeawayFeePerItem) || 0.3;
 
       const doc: any = await databases.updateDocument(DB_ID, 'store_settings', 'current_store_settings', payload);
-      return {
+      const remoteSettings: StoreSettings = {
         id: doc.$id,
-        isManuallyClosed: doc.isManuallyClosed,
-        manualCloseReason: doc.manualCloseReason,
-        bannerMessage: doc.bannerMessage,
+        isManuallyClosed: Boolean(doc.isManuallyClosed),
+        manualCloseReason: doc.manualCloseReason || '',
+        bannerMessage: doc.bannerMessage || '',
         schedule: JSON.parse(doc.scheduleJson),
-        enablePayNow: doc.enablePayNow !== undefined ? doc.enablePayNow : true,
-        enableStripe: doc.enableStripe !== undefined ? doc.enableStripe : false,
+        enablePayNow: typeof doc.enablePayNow === 'boolean' ? doc.enablePayNow : true,
+        enableStripe: typeof doc.enableStripe === 'boolean' ? doc.enableStripe : false,
         enableCounter: true,
         payNowType: doc.payNowType || (doc.payNowMobile ? 'mobile' : 'uen'),
-        payNowUen: doc.payNowUen,
-        payNowRecipientName: doc.payNowRecipientName,
-        payNowMobile: doc.payNowMobile,
-        payNowQrUrl: doc.payNowQrUrl,
-        takeawayFeePerItem: doc.takeawayFeePerItem,
+        payNowUen: doc.payNowUen || '202300000A',
+        payNowRecipientName: doc.payNowRecipientName || 'NYO PASTA',
+        payNowMobile: doc.payNowMobile || '92258003',
+        payNowQrUrl: doc.payNowQrUrl || '',
+        takeawayFeePerItem: typeof doc.takeawayFeePerItem === 'number' ? doc.takeawayFeePerItem : 0.3,
         updatedAt: doc.$updatedAt,
       };
+      localStore.updateStoreSettings(remoteSettings);
+      return remoteSettings;
     } catch (err) {
       console.warn('Appwrite updateStoreSettings failed, falling back:', err);
-      return localStore.updateStoreSettings(settings);
+      return localUpdated;
     }
   },
 

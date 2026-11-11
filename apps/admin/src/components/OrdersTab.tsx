@@ -9,10 +9,8 @@ import {
   ChevronUp,
   Volume2,
   VolumeX,
-  PlusCircle,
   ShoppingBag,
   Utensils,
-  Sparkles,
   Trash2,
   Ban,
 } from 'lucide-react';
@@ -213,66 +211,6 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
     }
   };
 
-  // Helper to create a test order if kitchen queue is empty
-  const handleCreateTestOrder = async () => {
-    unlockAudioContext();
-    try {
-      const randomIsPaid = Math.random() > 0.5;
-      const isTakeaway = Math.random() > 0.5;
-      const takeawayFee = isTakeaway ? 0.3 : 0;
-      const subtotal = 10.5;
-      const total = subtotal + takeawayFee;
-      await api.createOrder({
-        customerName: 'Customer ' + Math.floor(100 + Math.random() * 900),
-        customerContact: '9' + Math.floor(1000000 + Math.random() * 9000000),
-        isGuest: true,
-        fulfillmentType: isTakeaway ? 'takeaway' : 'dine_in',
-        takeawayFee,
-        subtotal,
-        discountAmount: 0,
-        total,
-        paymentMethod: randomIsPaid ? 'paynow' : 'counter',
-        paymentStatus: randomIsPaid ? 'paid' : 'unpaid',
-        fulfillmentStatus: 'received',
-        mainsCount: 1,
-        stampsEarned: 1,
-        items: [
-          {
-            id: 'item_' + Date.now(),
-            menuItemId: 'main-1',
-            name: 'Prawn Cream Pasta',
-            chineseName: '奶油虾面',
-            category: 'mains',
-            isKidPortion: false,
-            unitPrice: 8.5,
-            quantity: 1,
-            selectedAddOns: [
-              {
-                id: 'addon-scrambled-egg',
-                name: 'Scrambled Egg',
-                chineseName: '滑蛋',
-                price: 1.0,
-                quantity: 1,
-              },
-              {
-                id: 'addon-sauce-mentaiko',
-                name: 'Extra Sauce (Mentaiko)',
-                chineseName: '加酱 (明太子)',
-                price: 0.5,
-                quantity: 1,
-              },
-            ],
-            specialInstructions: 'Less spicy please',
-            itemTotal: 10.0,
-          },
-        ],
-      });
-      onOrderUpdated?.();
-    } catch (err) {
-      console.error('Failed to create test order:', err);
-    }
-  };
-
   const displayedOrders =
     filter === 'active'
       ? activeOrders
@@ -360,16 +298,6 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
             )}
           </button>
 
-          {/* Test order generator */}
-          <button
-            onClick={handleCreateTestOrder}
-            title="Inject simulated incoming order"
-            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-navy text-white hover:bg-navy-900 flex items-center gap-1.5 shadow-sm transition-all"
-          >
-            <PlusCircle className="w-3.5 h-3.5" />
-            + Test Order
-          </button>
-
           {/* Clear orders button */}
           {orders.length > 0 && (
             <button
@@ -402,15 +330,6 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
               ? 'New orders placed on the customer app will appear here in real time with an audio chime.'
               : 'Orders moved to this status will be listed here.'}
           </p>
-          {filter === 'active' && (
-            <button
-              onClick={handleCreateTestOrder}
-              className="mt-4 px-4 py-2 bg-terracotta text-white rounded-xl text-xs font-bold hover:bg-terracotta-600 inline-flex items-center gap-1.5 shadow-sm"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              Simulate First Order
-            </button>
-          )}
         </div>
       ) : (
         <div className="space-y-3">

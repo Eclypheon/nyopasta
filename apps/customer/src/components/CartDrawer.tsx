@@ -55,11 +55,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
     setIsAuthModalOpen,
   } = useCart();
 
-  const isPayNowAllowed = storeSettings.enablePayNow !== false;
+  const isPayNowAllowed = storeSettings.enablePayNow === true || (typeof storeSettings.enablePayNow !== 'boolean' && storeSettings.enablePayNow !== false);
   const isStripeAllowed = Boolean(storeSettings.enableStripe);
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(() => {
-    if (storeSettings.enablePayNow !== false) return 'paynow';
+    if (storeSettings.enablePayNow === true || (typeof storeSettings.enablePayNow !== 'boolean' && storeSettings.enablePayNow !== false)) return 'paynow';
     return 'counter';
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
