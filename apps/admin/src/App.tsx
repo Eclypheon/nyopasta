@@ -18,6 +18,8 @@ import { Header } from './components/Header';
 import { OrdersTab } from './components/OrdersTab';
 import { InventoryTab } from './components/InventoryTab';
 import { SettingsTab } from './components/SettingsTab';
+import { ScannerTab } from './components/ScannerTab';
+import { CustomersTab } from './components/CustomersTab';
 import { unlockAudioContext } from './utils/audio';
 
 export default function App() {
@@ -254,29 +256,10 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'scanner' && (
-          <div className="bg-white rounded-2xl p-6 border border-gray-200 text-center max-w-md mx-auto shadow-xs">
-            <QrCode className="w-12 h-12 text-navy mx-auto mb-3" />
-            <h2 className="font-bold text-lg text-gray-900">Loyalty Stamp Migration Scanner</h2>
-            <p className="text-xs text-gray-500 mt-1 mb-4">
-              Scan customer member QR code to credit stamps from their physical card into their account.
-            </p>
-            <div className="w-full aspect-square bg-gray-900 rounded-xl flex items-center justify-center text-white text-xs">
-              Camera preview ready
-            </div>
-          </div>
-        )}
+        {activeTab === 'scanner' && <ScannerTab />}
 
         {activeTab === 'customers' && (
-          <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs">
-            <h2 className="font-bold text-lg text-gray-900 mb-1">Customer Loyalty Analytics</h2>
-            <p className="text-xs text-gray-500 mb-4">
-              Track customer stamp counts, order counts, and last activity.
-            </p>
-            <div className="bg-gray-50 p-4 rounded-xl text-center text-xs text-gray-500 border border-gray-100">
-              Customer analytics tab ready for member reporting.
-            </div>
-          </div>
+          <CustomersTab onSelectCustomerForCredit={() => setActiveTab('scanner')} />
         )}
 
         {activeTab === 'settings' && (
