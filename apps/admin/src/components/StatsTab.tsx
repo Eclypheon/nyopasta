@@ -211,13 +211,13 @@ export const StatsTab: React.FC<StatsTabProps> = ({ orders }) => {
   const activeYearMonthDetail = selectedYearMonth ? monthlyBreakdownInYear.find((m) => m.monthNum === selectedYearMonth) : null;
 
   return (
-    <div className="space-y-2 pb-3">
+    <div className="flex flex-col gap-2 h-[calc(100dvh-9.2rem)] min-h-[560px]">
       {/* ========================================================= */}
       {/* 1. MONTHLY DAILY PERFORMANCE SECTION                      */}
       {/* ========================================================= */}
-      <div className="space-y-1.5 bg-white p-2.5 rounded-xl border border-gray-200 shadow-2xs">
+      <div className="flex-1 flex flex-col justify-between min-h-0 bg-white p-2.5 rounded-xl border border-gray-200 shadow-2xs">
         {/* Controls: Month Dropdown & Metric Toggle */}
-        <div className="flex items-center justify-between gap-1.5">
+        <div className="flex items-center justify-between gap-1.5 shrink-0">
           <div className="flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5 text-terracotta shrink-0" />
             <div className="relative">
@@ -274,7 +274,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({ orders }) => {
         </div>
 
         {/* 4 KPI Cards: Monthly */}
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-4 gap-1.5 shrink-0 my-1">
           <div className="bg-gray-50 px-2 py-1.5 rounded-lg border border-gray-100">
             <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tight block truncate">
               Rev
@@ -311,7 +311,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({ orders }) => {
 
         {/* Monthly Active Day Banner */}
         {activeDayDetail && (
-          <div className="bg-cream/40 border border-cream-dark px-1.5 py-0.5 rounded flex items-center justify-between text-[10px]">
+          <div className="bg-cream/40 border border-cream-dark px-1.5 py-0.5 rounded flex items-center justify-between text-[10px] shrink-0 mb-1">
             <div className="flex items-center gap-1">
               <span className="font-extrabold text-navy px-1 py-0.2 bg-white rounded border border-amber-200 text-[9px]">
                 Day {activeDayDetail.day}
@@ -331,8 +331,8 @@ export const StatsTab: React.FC<StatsTabProps> = ({ orders }) => {
         )}
 
         {/* Monthly Chart (30/31 days across 100% width) */}
-        <div className="flex pt-1">
-          <div className="flex flex-col justify-between text-[7px] font-bold text-gray-400 select-none h-36 text-right w-6 shrink-0 pr-1 pb-3.5">
+        <div className="flex pt-1 flex-1 min-h-[140px]">
+          <div className="flex flex-col justify-between text-[7px] font-bold text-gray-400 select-none h-full text-right w-6 shrink-0 pr-1 pb-3.5">
             {monthlyYTicks.map((tick, i) => (
               <span key={i} className="leading-none">
                 {monthlyMetric === 'revenue' ? `$${tick}` : tick}
@@ -340,7 +340,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({ orders }) => {
             ))}
           </div>
 
-          <div className="relative flex-1 h-36 border-b border-l border-gray-200 flex flex-col justify-between">
+          <div className="relative flex-1 h-full border-b border-l border-gray-200 flex flex-col justify-between">
             <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-3.5">
               <div className="w-full border-t border-gray-100" />
               <div className="w-full border-t border-gray-100" />
@@ -395,9 +395,9 @@ export const StatsTab: React.FC<StatsTabProps> = ({ orders }) => {
       {/* ========================================================= */}
       {/* 2. YEARLY MONTHLY PERFORMANCE SECTION                      */}
       {/* ========================================================= */}
-      <div className="space-y-1.5 bg-white p-2.5 rounded-xl border border-gray-200 shadow-2xs">
+      <div className="flex-1 flex flex-col justify-between min-h-0 bg-white p-2.5 rounded-xl border border-gray-200 shadow-2xs">
         {/* Controls: Year Dropdown & Metric Toggle */}
-        <div className="flex items-center justify-between gap-1.5">
+        <div className="flex items-center justify-between gap-1.5 shrink-0">
           <div className="flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5 text-navy shrink-0" />
             <div className="relative">
@@ -454,7 +454,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({ orders }) => {
         </div>
 
         {/* 4 KPI Cards: Yearly */}
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-4 gap-1.5 shrink-0 my-1">
           <div className="bg-gray-50 px-2 py-1.5 rounded-lg border border-gray-100">
             <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tight block truncate">
               Year Rev
@@ -491,7 +491,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({ orders }) => {
 
         {/* Yearly Active Month Banner */}
         {activeYearMonthDetail && (
-          <div className="bg-cream/40 border border-cream-dark px-1.5 py-0.5 rounded flex items-center justify-between text-[10px]">
+          <div className="bg-cream/40 border border-cream-dark px-1.5 py-0.5 rounded flex items-center justify-between text-[10px] shrink-0 mb-1">
             <div className="flex items-center gap-1">
               <span className="font-extrabold text-navy px-1 py-0.2 bg-white rounded border border-amber-200 text-[9px]">
                 {activeYearMonthDetail.name}
@@ -511,8 +511,8 @@ export const StatsTab: React.FC<StatsTabProps> = ({ orders }) => {
         )}
 
         {/* Yearly Chart (12 months across 100% width) */}
-        <div className="flex pt-1">
-          <div className="flex flex-col justify-between text-[7px] font-bold text-gray-400 select-none h-36 text-right w-6 shrink-0 pr-1 pb-3.5">
+        <div className="flex pt-1 flex-1 min-h-[140px]">
+          <div className="flex flex-col justify-between text-[7px] font-bold text-gray-400 select-none h-full text-right w-6 shrink-0 pr-1 pb-3.5">
             {yearlyYTicks.map((tick, i) => (
               <span key={i} className="leading-none">
                 {yearlyMetric === 'revenue' ? `$${tick}` : tick}
@@ -520,7 +520,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({ orders }) => {
             ))}
           </div>
 
-          <div className="relative flex-1 h-36 border-b border-l border-gray-200 flex flex-col justify-between">
+          <div className="relative flex-1 h-full border-b border-l border-gray-200 flex flex-col justify-between">
             <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-3.5">
               <div className="w-full border-t border-gray-100" />
               <div className="w-full border-t border-gray-100" />

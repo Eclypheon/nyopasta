@@ -583,13 +583,31 @@ export const api = {
     if (!isCloudConnected) return localStore.getStoreSettings();
     try {
       const doc: any = await databases.getDocument(DB_ID, 'store_settings', 'current_store_settings');
+      let parsedSchedule = DEFAULT_STORE_SETTINGS.schedule;
+      let remoteOverride: 'open' | 'closed' | null = null;
+      if (doc.scheduleJson) {
+        try {
+          const parsed = JSON.parse(doc.scheduleJson);
+          if (Array.isArray(parsed)) {
+            parsedSchedule = parsed;
+          } else if (parsed && typeof parsed === 'object') {
+            if (Array.isArray(parsed.schedule)) parsedSchedule = parsed.schedule;
+            if (parsed.manualOverride === 'open' || parsed.manualOverride === 'closed' || parsed.manualOverride === null) {
+              remoteOverride = parsed.manualOverride;
+            }
+          }
+        } catch (e) {
+          console.warn('Appwrite getStoreSettings parse scheduleJson error:', e);
+        }
+      }
+
       const remoteSettings: StoreSettings = {
         id: doc.$id,
         isManuallyClosed: Boolean(doc.isManuallyClosed),
-        manualOverride: doc.manualOverride || null,
+        manualOverride: remoteOverride,
         manualCloseReason: doc.manualCloseReason || '',
         bannerMessage: doc.bannerMessage || '',
-        schedule: JSON.parse(doc.scheduleJson),
+        schedule: parsedSchedule,
         enablePayNow: typeof doc.enablePayNow === 'boolean' ? doc.enablePayNow : true,
         enableStripe: typeof doc.enableStripe === 'boolean' ? doc.enableStripe : false,
         enableCounter: true,
@@ -613,12 +631,21 @@ export const api = {
     const localUpdated = localStore.updateStoreSettings(settings);
     if (!isCloudConnected) return localUpdated;
     try {
+      const currentStore = localStore.getStoreSettings();
+      const effectiveSchedule = settings.schedule !== undefined ? settings.schedule : currentStore.schedule;
+      const effectiveOverride = settings.manualOverride !== undefined ? settings.manualOverride : currentStore.manualOverride;
+
       const payload: any = {};
       if (settings.isManuallyClosed !== undefined) payload.isManuallyClosed = Boolean(settings.isManuallyClosed);
-      if (settings.manualOverride !== undefined) payload.manualOverride = settings.manualOverride;
       if (settings.manualCloseReason !== undefined) payload.manualCloseReason = settings.manualCloseReason;
       if (settings.bannerMessage !== undefined) payload.bannerMessage = settings.bannerMessage;
-      if (settings.schedule !== undefined) payload.scheduleJson = JSON.stringify(settings.schedule);
+
+      // Bundle schedule and manualOverride safely inside scheduleJson (Appwrite collection lacks root manualOverride attribute)
+      payload.scheduleJson = JSON.stringify({
+        schedule: effectiveSchedule,
+        manualOverride: effectiveOverride || null,
+      });
+
       if (settings.enablePayNow !== undefined) payload.enablePayNow = Boolean(settings.enablePayNow);
       if (settings.enableStripe !== undefined) payload.enableStripe = Boolean(settings.enableStripe);
       if (settings.enableCounter !== undefined) payload.enableCounter = Boolean(settings.enableCounter);
@@ -640,13 +667,31 @@ export const api = {
         }
       }
 
+      let parsedSchedule = DEFAULT_STORE_SETTINGS.schedule;
+      let remoteOverride: 'open' | 'closed' | null = null;
+      if (doc.scheduleJson) {
+        try {
+          const parsed = JSON.parse(doc.scheduleJson);
+          if (Array.isArray(parsed)) {
+            parsedSchedule = parsed;
+          } else if (parsed && typeof parsed === 'object') {
+            if (Array.isArray(parsed.schedule)) parsedSchedule = parsed.schedule;
+            if (parsed.manualOverride === 'open' || parsed.manualOverride === 'closed' || parsed.manualOverride === null) {
+              remoteOverride = parsed.manualOverride;
+            }
+          }
+        } catch (e) {
+          console.warn('Appwrite updateStoreSettings parse scheduleJson error:', e);
+        }
+      }
+
       const remoteSettings: StoreSettings = {
         id: doc.$id,
         isManuallyClosed: Boolean(doc.isManuallyClosed),
-        manualOverride: doc.manualOverride || null,
+        manualOverride: remoteOverride,
         manualCloseReason: doc.manualCloseReason || '',
         bannerMessage: doc.bannerMessage || '',
-        schedule: JSON.parse(doc.scheduleJson),
+        schedule: parsedSchedule,
         enablePayNow: typeof doc.enablePayNow === 'boolean' ? doc.enablePayNow : true,
         enableStripe: typeof doc.enableStripe === 'boolean' ? doc.enableStripe : false,
         enableCounter: true,

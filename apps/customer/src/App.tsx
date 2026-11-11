@@ -168,22 +168,24 @@ function CustomerAppContent() {
           {/* Right Scrollable Content Pane with ALL Items */}
           <div
             ref={scrollContainerRef}
-            className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-6 scroll-smooth"
+            className="flex-1 overflow-y-auto px-3 sm:px-4 pb-3 sm:pb-4 pt-0 space-y-6 scroll-smooth"
             style={{
               paddingBottom: 'calc(7.5rem + env(safe-area-inset-bottom, 0px))',
             }}
           >
             {/* 1-Tap Reorder Quick Banner if last order exists */}
             {lastOrder && (
-              <ReorderBanner
-                lastOrder={lastOrder}
-                onReorder={reorderOrder}
-              />
+              <div className="pt-2">
+                <ReorderBanner
+                  lastOrder={lastOrder}
+                  onReorder={reorderOrder}
+                />
+              </div>
             )}
 
             {/* Mains Section */}
-            <section id="cat-mains" className="space-y-3 scroll-mt-2">
-              <div className="flex items-center justify-between border-b border-cream-dark pb-1 sticky top-0 bg-cream py-1 z-10">
+            <section id="cat-mains" className="space-y-3 scroll-mt-0">
+              <div className="flex items-center justify-between border-b border-cream-dark pb-1.5 sticky top-0 bg-cream py-1.5 z-10 shadow-2xs">
                 <div>
                   <h2 className="font-extrabold text-sm text-navy uppercase tracking-wide">Signature Mains 主食</h2>
                   <p className="text-[10px] text-gray-500 font-medium">Every main earns 1 loyalty stamp</p>
@@ -200,8 +202,8 @@ function CustomerAppContent() {
             </section>
 
             {/* Artisanal Soups Section */}
-            <section id="cat-soups" className="space-y-3 scroll-mt-2">
-              <div className="flex items-center justify-between border-b border-cream-dark pb-1 sticky top-0 bg-cream py-1 z-10">
+            <section id="cat-soups" className="space-y-3 scroll-mt-0">
+              <div className="flex items-center justify-between border-b border-cream-dark pb-1.5 sticky top-0 bg-cream py-1.5 z-10 shadow-2xs">
                 <div>
                   <h2 className="font-extrabold text-sm text-navy uppercase tracking-wide">Artisanal Soups 意式浓汤</h2>
                   <p className="text-[10px] text-terracotta font-bold">Make it a set: Add $1 for garlic bread</p>
@@ -218,8 +220,8 @@ function CustomerAppContent() {
             </section>
 
             {/* Korean Fried Chicken Section */}
-            <section id="cat-kfc" className="space-y-3 scroll-mt-2">
-              <div className="flex items-center justify-between border-b border-cream-dark pb-1 sticky top-0 bg-cream py-1 z-10">
+            <section id="cat-kfc" className="space-y-3 scroll-mt-0">
+              <div className="flex items-center justify-between border-b border-cream-dark pb-1.5 sticky top-0 bg-cream py-1.5 z-10 shadow-2xs">
                 <div>
                   <h2 className="font-extrabold text-sm text-navy uppercase tracking-wide">Korean Fried Chicken 韩式炸鸡</h2>
                   <p className="text-[10px] text-gray-500 font-medium">Crispy whole cuts glazed fresh</p>
@@ -236,8 +238,8 @@ function CustomerAppContent() {
             </section>
 
             {/* Artisanal Breads Section */}
-            <section id="cat-breads" className="space-y-3 scroll-mt-2">
-              <div className="flex items-center justify-between border-b border-cream-dark pb-1 sticky top-0 bg-cream py-1 z-10">
+            <section id="cat-breads" className="space-y-3 scroll-mt-0">
+              <div className="flex items-center justify-between border-b border-cream-dark pb-1.5 sticky top-0 bg-cream py-1.5 z-10 shadow-2xs">
                 <div>
                   <h2 className="font-extrabold text-sm text-navy uppercase tracking-wide">Artisanal Breads 意式面包</h2>
                   <p className="text-[10px] text-gray-500 font-medium">Fresh toasted daily</p>
@@ -254,8 +256,8 @@ function CustomerAppContent() {
             </section>
 
             {/* Fried Items Section */}
-            <section id="cat-fried" className="space-y-3 scroll-mt-2">
-              <div className="flex items-center justify-between border-b border-cream-dark pb-1 sticky top-0 bg-cream py-1 z-10">
+            <section id="cat-fried" className="space-y-3 scroll-mt-0">
+              <div className="flex items-center justify-between border-b border-cream-dark pb-1.5 sticky top-0 bg-cream py-1.5 z-10 shadow-2xs">
                 <div>
                   <h2 className="font-extrabold text-sm text-navy uppercase tracking-wide">Fried Items 酥炸食品</h2>
                   <p className="text-[10px] text-gray-500 font-medium">Golden shoestring fries & onion rings</p>

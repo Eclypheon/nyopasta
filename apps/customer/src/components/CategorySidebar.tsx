@@ -22,7 +22,7 @@ interface CategorySidebarProps {
 
 export const CategorySidebar: React.FC<CategorySidebarProps> = ({ activeId, onSelect }) => {
   return (
-    <aside className="w-20 sm:w-24 bg-[#F5EEDB] border-r border-[#E8DFC9] shrink-0 overflow-y-auto py-2 flex flex-col gap-1 select-none scrollbar-none z-20">
+    <aside className="w-20 sm:w-24 bg-[#F5EEDB] border-r border-[#E8DFC9] shrink-0 overflow-y-auto pt-0 pb-2 flex flex-col gap-1 select-none scrollbar-none z-20">
       {CATEGORIES.map((cat) => {
         const isActive = activeId === cat.id;
         return (
