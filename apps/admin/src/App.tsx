@@ -13,6 +13,7 @@ import {
   QrCode,
   Users,
   Settings,
+  ChevronDown,
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { OrdersTab } from './components/OrdersTab';
@@ -32,6 +33,40 @@ export default function App() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>(INITIAL_MENU_ITEMS);
   const [orders, setOrders] = useState<Order[]>([]);
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS);
+  const [showScannerScrollDown, setShowScannerScrollDown] = useState(false);
+
+  // Check if admin scanner page has content below the fold
+  const checkScannerScroll = useCallback(() => {
+    if (activeTab !== 'scanner') {
+      setShowScannerScrollDown(false);
+      return;
+    }
+    const scrollHeight = document.documentElement.scrollHeight;
+    const clientHeight = window.innerHeight;
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const canScroll = scrollHeight > clientHeight + 30;
+    const isAtTop = scrollTop < 40;
+    setShowScannerScrollDown(canScroll && isAtTop);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'scanner') {
+      const timer = setTimeout(checkScannerScroll, 250);
+      window.addEventListener('scroll', checkScannerScroll, { passive: true });
+      window.addEventListener('resize', checkScannerScroll);
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('scroll', checkScannerScroll);
+        window.removeEventListener('resize', checkScannerScroll);
+      };
+    } else {
+      setShowScannerScrollDown(false);
+    }
+  }, [activeTab, checkScannerScroll]);
+
+  const scrollToMoreScanner = () => {
+    window.scrollBy({ top: 320, behavior: 'smooth' });
+  };
 
   // Load and subscribe to real-time updates
   useEffect(() => {
@@ -185,6 +220,22 @@ export default function App() {
             storeSettings={storeSettings}
             onSettingsSaved={refreshSettings}
           />
+        )}
+
+        {/* Scroll Down Hint Button on Scanner Page */}
+        {activeTab === 'scanner' && showScannerScrollDown && (
+          <button
+            type="button"
+            onClick={scrollToMoreScanner}
+            className="fixed right-4 z-20 bg-white/95 text-navy border border-gray-300 rounded-full p-2.5 shadow-xl flex items-center justify-center backdrop-blur-xs animate-bounce active:scale-95 transition-transform"
+            style={{
+              bottom: 'calc(4.8rem + env(safe-area-inset-bottom, 0px))',
+            }}
+            title="More below · Scroll down"
+            aria-label="More below · Scroll down"
+          >
+            <ChevronDown className="w-5 h-5 text-terracotta" />
+          </button>
         )}
       </main>
 

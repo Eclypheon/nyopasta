@@ -109,6 +109,40 @@ describe('Seam 3: Loyalty Stamp Rollover & Remainder Retention', () => {
     assert.equal(updated.milestoneRedemptions.stamp4, false);
     assert.equal(updated.milestoneRedemptions.stamp8, false);
   });
+
+  it('shows all 12 stamps when card completes, and only rolls over to 1 stamp when next stamp is earned', () => {
+    const testUserId = 'test_user_card_complete';
+    localStore.updateUserStamps(testUserId, 11, {
+      type: 'manual_migration',
+      description: 'Setup 11 stamps',
+      stamps: 11,
+    });
+
+    // Customer buys 1 main -> reaches exactly 12 stamps
+    const completedCard = localStore.updateUserStamps(testUserId, 12, {
+      type: 'order',
+      description: 'Purchased 1 main to complete card',
+      stamps: 1,
+    });
+
+    // Card completed: shows all 12 stamps, page is not emptied!
+    assert.equal(completedCard.currentStampCount, 12);
+    assert.equal(completedCard.milestoneRedemptions.stamp12, true);
+    assert.equal(completedCard.voucherMeal850Count, 1);
+
+    // Later: Customer buys 1 more main -> now rolls over to 1 stamp on new card
+    const rolledOver = localStore.updateUserStamps(testUserId, 13, {
+      type: 'order',
+      description: 'Purchased next main on new card',
+      stamps: 1,
+    });
+
+    assert.equal(rolledOver.completedCardsCount, 1);
+    assert.equal(rolledOver.currentStampCount, 1);
+    assert.equal(rolledOver.milestoneRedemptions.stamp12, false);
+    // Voucher from completed card is preserved
+    assert.equal(rolledOver.voucherMeal850Count, 1);
+  });
 });
 
 describe('Seam 4: Order Lifecycle & Payment Safeguard', () => {

@@ -292,8 +292,12 @@ class LocalReactiveStore {
       if (voucherDeltas.meal850) newMeal850 = Math.max(0, newMeal850 + voucherDeltas.meal850);
     }
 
-    const finalCompletedCards = Math.floor(newLifetime / 12);
-    const finalStamps = newLifetime % 12;
+    const finalCompletedCards = newLifetime > 0 && newLifetime % 12 === 0
+      ? (newLifetime / 12) - 1
+      : Math.floor(newLifetime / 12);
+    const finalStamps = newLifetime > 0 && newLifetime % 12 === 0
+      ? 12
+      : (newLifetime % 12);
 
     const event: StampEvent = {
       ...historyEntry,
@@ -928,8 +932,12 @@ export const api = {
         if (voucherDeltas.meal850) newMeal850 = Math.max(0, newMeal850 + voucherDeltas.meal850);
       }
 
-      const finalCompletedCards = Math.floor(newLifetime / 12);
-      const finalStamps = newLifetime % 12;
+      const finalCompletedCards = newLifetime > 0 && newLifetime % 12 === 0
+        ? (newLifetime / 12) - 1
+        : Math.floor(newLifetime / 12);
+      const finalStamps = newLifetime > 0 && newLifetime % 12 === 0
+        ? 12
+        : (newLifetime % 12);
 
       const event: StampEvent = {
         ...historyEntry,

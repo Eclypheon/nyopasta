@@ -88,6 +88,18 @@ export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ onOpenQrModal }) => {
           </div>
         </div>
 
+        {/* Card Completed Celebration Banner */}
+        {currentStamps === 12 && (
+          <div className="mt-3 relative z-10 bg-emerald-50 border border-emerald-200 rounded-2xl p-2.5 text-center">
+            <p className="font-extrabold text-xs text-emerald-800">
+              🎉 Card Complete! All 12 Stamps Collected!
+            </p>
+            <p className="text-[11px] text-emerald-700 mt-0.5">
+              Your $8.50 voucher is saved in your wallet. A new card will start upon your next stamp.
+            </p>
+          </div>
+        )}
+
         {/* 12-Stamp Grid: 3 rows x 4 columns */}
         <div className="py-5 relative z-10">
           <div className="grid grid-cols-4 gap-3 max-w-[340px] mx-auto">
@@ -205,9 +217,10 @@ export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ onOpenQrModal }) => {
           </p>
           <div className="pt-2 flex items-center justify-between text-xs font-bold text-terracotta">
             <span>Thanks for supporting NYO Pasta!</span>
-            {profile.completedCardsCount > 0 && (
-              <span className="bg-terracotta/10 px-2 py-0.5 rounded-full text-[10px] text-terracotta">
-                🎉 {profile.completedCardsCount} {profile.completedCardsCount === 1 ? 'Card' : 'Cards'} Completed
+            {(profile.completedCardsCount > 0 || currentStamps === 12) && (
+              <span className="bg-terracotta/10 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-terracotta">
+                🎉 {profile.completedCardsCount + (currentStamps === 12 ? 1 : 0)}{' '}
+                {profile.completedCardsCount + (currentStamps === 12 ? 1 : 0) === 1 ? 'Card' : 'Cards'} Completed
               </span>
             )}
           </div>
