@@ -9,8 +9,13 @@ interface OrderHistoryViewProps {
 }
 
 export const OrderHistoryView: React.FC<OrderHistoryViewProps> = ({ onGoToMenu }) => {
-  const { orders, lastOrder, reorderOrder, storeSettings } = useCart();
+  const { orders, reorderOrder, storeSettings } = useCart();
   const [selectedPayNowOrder, setSelectedPayNowOrder] = useState<Order | null>(null);
+
+  // Deduplicate orders by ID to prevent duplicate items from ever appearing
+  const uniqueOrders = Array.from(
+    new Map(orders.map((o) => [o.id, o])).values()
+  );
 
   const getStatusBadge = (status: FulfillmentStatus) => {
     switch (status) {
@@ -49,7 +54,7 @@ export const OrderHistoryView: React.FC<OrderHistoryViewProps> = ({ onGoToMenu }
     }
   };
 
-  if (orders.length === 0 && !lastOrder) {
+  if (uniqueOrders.length === 0) {
     return (
       <div className="text-center py-12 space-y-4">
         <div className="w-16 h-16 rounded-full bg-cream mx-auto flex items-center justify-center text-navy/30">
@@ -73,61 +78,46 @@ export const OrderHistoryView: React.FC<OrderHistoryViewProps> = ({ onGoToMenu }
 
   return (
     <div className="space-y-4">
-      {/* 1-Tap Reorder Feature Card for Last Order */}
-      {lastOrder && (
-        <div className="bg-gradient-to-r from-terracotta-50 to-cream-light border-2 border-terracotta/40 rounded-3xl p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] uppercase font-black tracking-wider text-terracotta flex items-center gap-1">
-              <RotateCcw className="w-3 h-3" /> Quick Reorder
-            </span>
-            <span className="text-[11px] font-mono font-bold text-navy/60">{lastOrder.orderNumber}</span>
-          </div>
-
-          <h4 className="font-extrabold text-sm text-navy mb-1">Repeat Your Previous Order</h4>
-          <p className="text-xs text-navy/70 line-clamp-2">
-            {lastOrder.items.map((i) => `${i.quantity}x ${i.name}`).join(', ')}
-          </p>
-
-          <div className="mt-3 pt-2 border-t border-terracotta/20 flex items-center justify-between">
-            <span className="font-black text-sm text-navy">${lastOrder.total.toFixed(2)}</span>
-            <button
-              onClick={() => reorderOrder(lastOrder)}
-              className="bg-terracotta hover:bg-terracotta-600 active:scale-95 text-white font-extrabold text-xs px-4 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-transform"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>1-Tap Reorder</span>
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Orders List */}
       <div className="space-y-3">
         <h3 className="font-extrabold text-xs text-navy uppercase tracking-wider">
-          Order History ({orders.length})
+          Order History ({uniqueOrders.length})
         </h3>
 
-        {orders.map((order) => (
-          <div
-            key={order.id}
-            className="bg-white rounded-2xl p-4 border border-cream-dark shadow-xs space-y-2.5"
-          >
-            {/* Header: Order Number, Date, Status */}
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <span className="font-mono font-black text-sm text-navy block">{order.orderNumber}</span>
-                <span className="text-[10px] text-navy/50 block">
-                  {new Date(order.createdAt).toLocaleString('en-SG', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </span>
+        {uniqueOrders.map((order, index) => {
+          const isLatest = index === 0;
+          return (
+            <div
+              key={order.id}
+              className={`bg-white rounded-2xl p-4 shadow-xs space-y-2.5 ${
+                isLatest
+                  ? 'border-2 border-terracotta/40 bg-gradient-to-b from-white to-cream-light/30'
+                  : 'border border-cream-dark'
+              }`}
+            >
+              {/* Header: Order Number, Date, Status */}
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-black text-sm text-navy block">{order.orderNumber}</span>
+                    {isLatest && (
+                      <span className="text-[9px] font-black uppercase tracking-wider bg-terracotta/10 text-terracotta px-2 py-0.5 rounded-full">
+                        Latest
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-navy/50 block">
+                    {new Date(order.createdAt).toLocaleString('en-SG', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+                <div>{getStatusBadge(order.fulfillmentStatus)}</div>
               </div>
-              <div>{getStatusBadge(order.fulfillmentStatus)}</div>
-            </div>
 
             {/* Order Items Summary */}
             <div className="space-y-1 py-1 border-t border-b border-cream-dark/60 text-xs text-navy/80">
@@ -196,8 +186,9 @@ export const OrderHistoryView: React.FC<OrderHistoryViewProps> = ({ onGoToMenu }
               </div>
             </div>
           </div>
-        ))}
-      </div>
+        );
+      })}
+    </div>
 
       {selectedPayNowOrder && (
         <PayNowModal

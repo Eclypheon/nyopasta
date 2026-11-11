@@ -144,7 +144,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [orders, setOrders] = useState<Order[]>(() => {
     try {
       const saved = localStorage.getItem('nyo_device_orders');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed: Order[] = JSON.parse(saved);
+        const map = new Map<string, Order>();
+        parsed.forEach((o) => map.set(o.id, o));
+        return Array.from(map.values());
+      }
     } catch {}
     return [];
   });
@@ -258,8 +263,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Load customer past orders from cloud
     api.getCustomerOrders(currentUser.id).then((custOrders) => {
       if (custOrders && custOrders.length > 0) {
-        setOrders(custOrders);
-        setLastOrder(custOrders[0]);
+        const map = new Map<string, Order>();
+        custOrders.forEach((o) => map.set(o.id, o));
+        const unique = Array.from(map.values());
+        setOrders(unique);
+        setLastOrder(unique[0]);
       }
     }).catch(() => {});
 
@@ -273,8 +281,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (currentUser?.id) {
           const userOrders = allOrders.filter((o) => o.customerId === currentUser.id);
           if (userOrders.length > 0) {
-            setLastOrder(userOrders[userOrders.length - 1]);
-            return userOrders.reverse();
+            const sorted = [...userOrders].sort(
+              (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+            const map = new Map<string, Order>();
+            sorted.forEach((o) => map.set(o.id, o));
+            const unique = Array.from(map.values());
+            setLastOrder(unique[0] || null);
+            return unique;
           }
         }
         if (prev.length === 0) return prev;
@@ -287,7 +301,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           return localOrder;
         });
-        return changed ? updated : prev;
+        const map = new Map<string, Order>();
+        (changed ? updated : prev).forEach((o) => map.set(o.id, o));
+        return Array.from(map.values());
       });
 
       setLastOrder((prev) => {
@@ -610,9 +626,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setProfile(updatedProfile);
     }
 
-    // Update last order and history
+    // Update last order and history without duplicate entries
     setLastOrder(newOrder);
-    setOrders((prev) => [newOrder, ...prev]);
+    setOrders((prev) => [newOrder, ...prev.filter((o) => o.id !== newOrder.id)]);
 
     // Clear cart and close drawer
     clearCart();
