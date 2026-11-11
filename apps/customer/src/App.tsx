@@ -1,156 +1,225 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  INITIAL_MENU_ITEMS,
-  DEFAULT_STORE_SETTINGS,
-  isStoreCurrentlyOpen,
-  forceResetPwaCache,
+  MenuItem,
   MenuItemCategory,
+  Order,
+  INITIAL_MENU_ITEMS,
+  api,
 } from '@nyopasta/shared';
-import { RefreshCw, ShoppingBag, Award, Clock } from 'lucide-react';
+import { ShoppingBag, Award, Clock, ArrowRight } from 'lucide-react';
+import { CartProvider, useCart } from './context/CartContext';
+import { Header } from './components/Header';
+import { StoreStatusBanner } from './components/StoreStatusBanner';
+import { CategoryNav } from './components/CategoryNav';
+import { MenuCard } from './components/MenuCard';
+import { ItemModal } from './components/ItemModal';
+import { CartDrawer } from './components/CartDrawer';
+import { LoyaltyCard } from './components/LoyaltyCard';
+import { MemberQrModal } from './components/MemberQrModal';
+import { OrderHistoryView } from './components/OrderHistoryView';
+import { OrderSuccessModal } from './components/OrderSuccessModal';
+import { ReorderBanner } from './components/ReorderBanner';
 
-export default function App() {
+function CustomerAppContent() {
   const [activeTab, setActiveTab] = useState<'menu' | 'loyalty' | 'orders'>('menu');
   const [selectedCategory, setSelectedCategory] = useState<MenuItemCategory>('mains');
-  const storeStatus = isStoreCurrentlyOpen(DEFAULT_STORE_SETTINGS);
+  const [selectedSubcategory, setSelectedSubcategory] = useState('All');
+  const [selectedItemForModal, setSelectedItemForModal] = useState<MenuItem | null>(null);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(INITIAL_MENU_ITEMS);
+
+  const {
+    isCartOpen,
+    setIsCartOpen,
+    totalItemCount,
+    total,
+    lastOrder,
+    reorderOrder,
+    storeSettings,
+  } = useCart();
+
+  // Real-time subscription to menu items (reflects admin sold-out toggles immediately)
+  useEffect(() => {
+    const unsub = api.subscribeToMenuItems((items) => {
+      setMenuItems(items);
+    });
+    return () => unsub();
+  }, []);
+
+  // Filter menu items by category and subcategory
+  const filteredItems = menuItems.filter((item) => {
+    if (item.category !== selectedCategory) return false;
+    if (selectedCategory === 'sides' && selectedSubcategory !== 'All') {
+      return item.subcategory === selectedSubcategory;
+    }
+    return true;
+  });
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col max-w-md mx-auto shadow-xl relative pb-20">
-      {/* Top Header */}
-      <header className="bg-white border-b border-cream-dark px-4 py-3 sticky top-0 z-30 shadow-sm flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <img src="/logo.jpg" alt="NYO Pasta" className="w-10 h-10 rounded-full border border-terracotta object-cover" />
-          <div>
-            <h1 className="font-bold text-lg text-terracotta leading-tight">NYO PASTA</h1>
-            <p className="text-xs text-gray-500 font-medium">Toa Payoh Palm Spring #01-54</p>
-          </div>
-        </div>
+    <div className="min-h-screen bg-cream flex flex-col max-w-md mx-auto shadow-2xl relative pb-24 text-navy">
+      {/* Sticky Brand Header */}
+      <Header
+        onOpenCart={() => setIsCartOpen(true)}
+      />
 
-        {/* Force PWA Cache Reset Button */}
-        <button
-          onClick={() => {
-            if (window.confirm('Reset application cache and reload fresh?')) {
-              forceResetPwaCache();
-            }
-          }}
-          title="Force update app and reset cache"
-          className="p-2 text-gray-400 hover:text-terracotta active:rotate-180 transition-all rounded-full bg-cream-light border border-cream-dark"
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
-      </header>
+      {/* Real-time Store Status Banner */}
+      <StoreStatusBanner settings={storeSettings} />
 
-      {/* Store Closed Banner if applicable */}
-      {!storeStatus.isOpen && (
-        <div className="bg-red-500 text-white text-xs px-4 py-2 font-medium flex items-center justify-between">
-          <span>{storeStatus.bannerMessage || storeStatus.reason}</span>
-          <span className="bg-red-700 text-[10px] uppercase font-bold px-1.5 py-0.5 rounded">Closed</span>
-        </div>
-      )}
-
-      {/* Main Content View */}
+      {/* Main View Area */}
       <main className="flex-1 p-4">
+        {/* Menu Tab */}
         {activeTab === 'menu' && (
-          <div>
-            {/* Category Filter Pills */}
-            <div className="flex gap-2 overflow-x-auto pb-3 pt-1 scrollbar-none">
-              {(['mains', 'soups', 'sides'] as MenuItemCategory[]).map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-semibold capitalize whitespace-nowrap transition-colors ${
-                    selectedCategory === cat
-                      ? 'bg-terracotta text-white shadow-sm'
-                      : 'bg-white text-navy border border-cream-dark'
-                  }`}
-                >
-                  {cat === 'mains' ? 'Mains 主食' : cat === 'soups' ? 'Artisanal Soups 浓汤' : 'Sides 小菜'}
-                </button>
-              ))}
-            </div>
+          <div className="space-y-3">
+            {/* 1-Tap Reorder Quick Banner if last order exists */}
+            {lastOrder && (
+              <ReorderBanner
+                lastOrder={lastOrder}
+                onReorder={reorderOrder}
+              />
+            )}
 
-            {/* Menu List */}
-            <div className="space-y-3 mt-2">
-              {INITIAL_MENU_ITEMS.filter((item) => item.category === selectedCategory).map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-white rounded-xl p-3 border border-cream-dark shadow-sm flex justify-between items-start gap-3"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-navy text-sm leading-snug">{item.name}</h3>
-                      {item.tag && (
-                        <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded">
-                          {item.tag}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-terracotta font-medium mt-0.5">{item.chineseName}</p>
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">{item.description}</p>
-                    <div className="mt-2 flex items-baseline gap-2">
-                      <span className="font-extrabold text-navy">${item.price.toFixed(2)}</span>
-                      {item.isKidOption && item.kidPrice && (
-                        <span className="text-[11px] text-gray-500">Kid portion: ${item.kidPrice.toFixed(2)}</span>
-                      )}
-                    </div>
-                  </div>
-                  <button className="bg-terracotta hover:bg-terracotta-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg shrink-0 mt-1">
-                    Add
-                  </button>
+            {/* Category Navigation Pills */}
+            <CategoryNav
+              selectedCategory={selectedCategory}
+              onSelectCategory={(cat) => {
+                setSelectedCategory(cat);
+                setSelectedSubcategory('All');
+              }}
+              selectedSubcategory={selectedSubcategory}
+              onSelectSubcategory={setSelectedSubcategory}
+            />
+
+            {/* Menu Items List */}
+            <div className="space-y-3 pt-1">
+              {filteredItems.length === 0 ? (
+                <div className="text-center py-12 text-navy/50 text-xs">
+                  No items available in this category.
                 </div>
-              ))}
+              ) : (
+                filteredItems.map((item) => (
+                  <MenuCard
+                    key={item.id}
+                    item={item}
+                    onSelect={(selected) => setSelectedItemForModal(selected)}
+                  />
+                ))
+              )}
             </div>
           </div>
         )}
 
+        {/* Loyalty Tab */}
         {activeTab === 'loyalty' && (
-          <div className="text-center py-8">
-            <Award className="w-12 h-12 text-terracotta mx-auto mb-2" />
-            <h2 className="text-lg font-bold text-navy">NYO Virtual Loyalty Card</h2>
-            <p className="text-xs text-gray-500 mt-1 max-w-xs mx-auto">
-              Earn 1 stamp for every main purchased. Redeem exclusive sides and pasta discounts!
-            </p>
-          </div>
+          <LoyaltyCard
+            onOpenQrModal={() => setIsQrModalOpen(true)}
+          />
         )}
 
+        {/* Orders Tab */}
         {activeTab === 'orders' && (
-          <div className="text-center py-8">
-            <Clock className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-            <h2 className="text-lg font-bold text-navy">Order History</h2>
-            <p className="text-xs text-gray-500 mt-1">Track active orders or re-order your favorites in one tap.</p>
-          </div>
+          <OrderHistoryView
+            onGoToMenu={() => setActiveTab('menu')}
+          />
         )}
       </main>
 
-      {/* Bottom Sticky Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-cream-dark flex items-center justify-around py-2 z-30 shadow-lg">
+      {/* Floating Bottom Cart Bar (visible on menu tab when cart has items) */}
+      {activeTab === 'menu' && totalItemCount > 0 && !isCartOpen && (
+        <div className="fixed bottom-16 left-0 right-0 max-w-md mx-auto px-4 z-20 pointer-events-none">
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="w-full bg-navy text-white rounded-2xl p-3.5 shadow-xl flex items-center justify-between pointer-events-auto active:scale-[0.98] transition-transform"
+          >
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-terracotta text-white font-black text-xs flex items-center justify-center">
+                {totalItemCount}
+              </span>
+              <span className="font-extrabold text-xs">View Current Cart</span>
+            </div>
+            <div className="flex items-center gap-2 font-black text-xs">
+              <span>${total.toFixed(2)}</span>
+              <ArrowRight className="w-4 h-4 text-pasta-gold" />
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* Bottom Navigation Bar */}
+      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-md border-t border-cream-dark flex items-center justify-around py-2.5 z-30 shadow-lg">
         <button
           onClick={() => setActiveTab('menu')}
-          className={`flex flex-col items-center text-xs font-semibold ${
-            activeTab === 'menu' ? 'text-terracotta' : 'text-gray-400'
+          className={`flex flex-col items-center text-xs font-extrabold transition-colors ${
+            activeTab === 'menu' ? 'text-terracotta' : 'text-navy/40 hover:text-navy/70'
           }`}
         >
           <ShoppingBag className="w-5 h-5 mb-0.5" />
-          Menu
+          <span>Menu</span>
         </button>
+
         <button
           onClick={() => setActiveTab('loyalty')}
-          className={`flex flex-col items-center text-xs font-semibold ${
-            activeTab === 'loyalty' ? 'text-terracotta' : 'text-gray-400'
+          className={`flex flex-col items-center text-xs font-extrabold transition-colors ${
+            activeTab === 'loyalty' ? 'text-terracotta' : 'text-navy/40 hover:text-navy/70'
           }`}
         >
           <Award className="w-5 h-5 mb-0.5" />
-          Loyalty
+          <span>Loyalty</span>
         </button>
+
         <button
           onClick={() => setActiveTab('orders')}
-          className={`flex flex-col items-center text-xs font-semibold ${
-            activeTab === 'orders' ? 'text-terracotta' : 'text-gray-400'
+          className={`flex flex-col items-center text-xs font-extrabold transition-colors ${
+            activeTab === 'orders' ? 'text-terracotta' : 'text-navy/40 hover:text-navy/70'
           }`}
         >
           <Clock className="w-5 h-5 mb-0.5" />
-          Orders
+          <span>Orders</span>
         </button>
       </nav>
+
+      {/* Item Customization Modal */}
+      {selectedItemForModal && (
+        <ItemModal
+          item={selectedItemForModal}
+          onClose={() => setSelectedItemForModal(null)}
+        />
+      )}
+
+      {/* Slide-over Cart Drawer */}
+      <CartDrawer
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        onOrderSuccess={(order) => {
+          setPlacedOrder(order);
+        }}
+      />
+
+      {/* Member Cashier QR Modal */}
+      <MemberQrModal
+        isOpen={isQrModalOpen}
+        onClose={() => setIsQrModalOpen(false)}
+      />
+
+      {/* Order Placement Success Receipt Modal */}
+      {placedOrder && (
+        <OrderSuccessModal
+          order={placedOrder}
+          onClose={() => setPlacedOrder(null)}
+          onGoToLoyalty={() => {
+            setPlacedOrder(null);
+            setActiveTab('loyalty');
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <CartProvider>
+      <CustomerAppContent />
+    </CartProvider>
   );
 }
