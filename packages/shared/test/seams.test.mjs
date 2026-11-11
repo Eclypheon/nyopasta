@@ -576,3 +576,93 @@ describe('Seam 12: Voucher Selection/Deselection Safety & Deferred Wallet Decrem
     assert.equal(profile.voucherSide350Count, 0);
   });
 });
+
+describe('Seam 13: Admin Order Archival, Archive Purge & Customer Profile Management', () => {
+  it('archives all fulfilled orders in bulk without touching active queue orders', () => {
+    // 1. Create one active order and two fulfilled orders
+    const activeOrder = localStore.createOrder({
+      customerId: 'user_arch_test',
+      customerName: 'Active Person',
+      customerContact: '91112222',
+      isGuest: false,
+      items: [],
+      fulfillmentType: 'dine_in',
+      takeawayFee: 0,
+      subtotal: 10,
+      discountAmount: 0,
+      total: 10,
+      paymentMethod: 'counter',
+      paymentStatus: 'unpaid',
+      fulfillmentStatus: 'received',
+      mainsCount: 1,
+      stampsEarned: 1,
+    });
+
+    const fulfilled1 = localStore.createOrder({
+      customerId: 'user_arch_test',
+      customerName: 'Fulfilled Person 1',
+      customerContact: '91112223',
+      isGuest: false,
+      items: [],
+      fulfillmentType: 'dine_in',
+      takeawayFee: 0,
+      subtotal: 12,
+      discountAmount: 0,
+      total: 12,
+      paymentMethod: 'counter',
+      paymentStatus: 'paid',
+      fulfillmentStatus: 'fulfilled',
+      mainsCount: 1,
+      stampsEarned: 1,
+    });
+
+    const fulfilled2 = localStore.createOrder({
+      customerId: 'user_arch_test',
+      customerName: 'Fulfilled Person 2',
+      customerContact: '91112224',
+      isGuest: false,
+      items: [],
+      fulfillmentType: 'takeaway',
+      takeawayFee: 0.3,
+      subtotal: 15,
+      discountAmount: 0,
+      total: 15.3,
+      paymentMethod: 'paynow',
+      paymentStatus: 'paid',
+      fulfillmentStatus: 'fulfilled',
+      mainsCount: 1,
+      stampsEarned: 1,
+    });
+
+    // 2. Perform bulk archive
+    localStore.archiveAllFulfilled();
+
+    const orders = localStore.getOrders();
+    const activeReloaded = orders.find((o) => o.id === activeOrder.id);
+    const f1Reloaded = orders.find((o) => o.id === fulfilled1.id);
+    const f2Reloaded = orders.find((o) => o.id === fulfilled2.id);
+
+    // Active order remains in active queue
+    assert.equal(activeReloaded.fulfillmentStatus, 'received');
+    // Fulfilled orders transition to archived
+    assert.equal(f1Reloaded.fulfillmentStatus, 'archived');
+    assert.equal(f2Reloaded.fulfillmentStatus, 'archived');
+
+    // 3. Purge archives permanently
+    localStore.deleteArchivedOrders();
+
+    const remainingOrders = localStore.getOrders();
+    assert.ok(remainingOrders.some((o) => o.id === activeOrder.id));
+    assert.ok(!remainingOrders.some((o) => o.id === fulfilled1.id));
+    assert.ok(!remainingOrders.some((o) => o.id === fulfilled2.id));
+  });
+
+  it('permanently deletes customer profile record by user ID', () => {
+    const tempUserId = 'temp_user_to_delete';
+    localStore.getProfile(tempUserId, 'Delete Me');
+    assert.ok(localStore.getAllProfiles().some((p) => p.authUserId === tempUserId));
+
+    localStore.deleteProfile(tempUserId);
+    assert.ok(!localStore.getAllProfiles().some((p) => p.authUserId === tempUserId));
+  });
+});

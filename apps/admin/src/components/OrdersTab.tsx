@@ -199,15 +199,27 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
     }
   };
 
-  const handleClearOrders = async () => {
-    if (orders.length === 0) return;
-    const ok = window.confirm('Are you sure you want to clear all kitchen orders?');
-    if (!ok) return;
+  const handleArchiveAllFulfilled = async () => {
+    if (fulfilledOrders.length === 0) return;
     try {
-      await api.clearOrders();
+      await api.archiveAllFulfilledOrders();
       onOrderUpdated?.();
     } catch (err) {
-      console.error('Failed to clear orders:', err);
+      console.error('Failed to archive fulfilled orders:', err);
+    }
+  };
+
+  const handleDeleteArchived = async () => {
+    if (archivedOrders.length === 0) return;
+    const ok = window.confirm(
+      'Are you sure you want to permanently delete all archived orders? This cannot be undone.'
+    );
+    if (!ok) return;
+    try {
+      await api.deleteArchivedOrders();
+      onOrderUpdated?.();
+    } catch (err) {
+      console.error('Failed to delete archived orders:', err);
     }
   };
 
@@ -217,6 +229,35 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
       : filter === 'fulfilled'
       ? fulfilledOrders
       : archivedOrders;
+
+  const archivedOrdersByDay = useMemo(() => {
+    // Sort newest first for history browsing
+    const sorted = [...archivedOrders].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    const groups: { dateKey: string; label: string; orders: Order[]; dayRevenue: number }[] = [];
+    const map = new Map<string, { dateKey: string; label: string; orders: Order[]; dayRevenue: number }>();
+
+    for (const order of sorted) {
+      const d = new Date(order.createdAt);
+      const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      let group = map.get(dateKey);
+      if (!group) {
+        const label = d.toLocaleDateString('en-SG', {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        });
+        group = { dateKey, label, orders: [], dayRevenue: 0 };
+        map.set(dateKey, group);
+        groups.push(group);
+      }
+      group.orders.push(order);
+      group.dayRevenue += order.total;
+    }
+    return groups;
+  }, [archivedOrders]);
 
   const formatRelativeTime = (isoString: string) => {
     const diff = Math.max(0, Math.floor((Date.now() - new Date(isoString).getTime()) / 1000));
@@ -233,6 +274,314 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
       minute: '2-digit',
       hour12: true,
     });
+  };
+
+  const renderOrderCard = (order: Order, isOldestActive: boolean) => {
+    const isExpanded = expandedId === order.id;
+    const isNew = animatingOrderIds.has(order.id);
+    const isUnpaid = order.paymentStatus === 'unpaid';
+    const isCancelled = order.fulfillmentStatus === 'cancelled';
+
+    return (
+      <div
+        key={order.id}
+        className={`bg-white rounded-xl transition-all duration-200 border-2 overflow-hidden shadow-xs ${
+          isCancelled
+            ? 'border-red-500 bg-red-50/40 ring-4 ring-red-400/20'
+            : isNew
+            ? 'border-terracotta ring-4 ring-terracotta/20 bg-amber-50/40 animate-pulse'
+            : isOldestActive
+            ? 'border-terracotta shadow-md'
+            : 'border-gray-200 hover:border-gray-300'
+        }`}
+      >
+        {/* Compact Card Header: Click to Expand / Collapse */}
+        <div
+          onClick={() => handleToggleExpand(order.id)}
+          className="p-3.5 cursor-pointer flex items-center justify-between select-none"
+        >
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Order Number Badge */}
+            <span
+              className={`font-black text-sm px-2.5 py-0.5 rounded-lg text-white ${
+                isOldestActive ? 'bg-terracotta' : 'bg-navy'
+              }`}
+            >
+              {order.orderNumber}
+            </span>
+
+            {/* Oldest Active Indicator */}
+            {isOldestActive && (
+              <span className="text-[11px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">
+                Oldest in Queue
+              </span>
+            )}
+
+            {/* New Order Arrival Indicator */}
+            {isNew && (
+              <span className="text-[11px] font-bold bg-terracotta text-white px-2 py-0.5 rounded-md animate-bounce">
+                NEW ORDER
+              </span>
+            )}
+
+            {/* Relative and Clock Time */}
+            <div className="flex items-center gap-1 text-xs text-gray-500 font-medium">
+              <Clock className="w-3.5 h-3.5" />
+              <span>{formatRelativeTime(order.createdAt)}</span>
+              <span className="text-gray-300">•</span>
+              <span>{formatClockTime(order.createdAt)}</span>
+            </div>
+
+            {/* Customer Name */}
+            <span className="text-xs text-gray-700 font-semibold">
+              {order.customerName}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Fulfillment Type Badge */}
+            <span
+              className={`text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${
+                order.fulfillmentType === 'takeaway'
+                  ? 'bg-purple-100 text-purple-800'
+                  : 'bg-blue-100 text-blue-800'
+              }`}
+            >
+              <ShoppingBag className="w-3 h-3" />
+              {order.fulfillmentType === 'takeaway' ? 'Takeaway' : 'Dine-in'}
+            </span>
+
+            {/* Payment Status Badge */}
+            {isUnpaid ? (
+              <span className="text-xs font-black px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3 text-amber-600" />
+                UNPAID
+              </span>
+            ) : (
+              <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                Paid
+              </span>
+            )}
+
+            {/* Status Pill */}
+            <span
+              className={`text-xs font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                order.fulfillmentStatus === 'cancelled'
+                  ? 'bg-red-600 text-white font-black animate-pulse'
+                  : order.fulfillmentStatus === 'received'
+                  ? 'bg-blue-50 text-blue-700'
+                  : order.fulfillmentStatus === 'preparing'
+                  ? 'bg-amber-50 text-amber-700'
+                  : order.fulfillmentStatus === 'ready'
+                  ? 'bg-teal-50 text-teal-700'
+                  : order.fulfillmentStatus === 'fulfilled'
+                  ? 'bg-emerald-50 text-emerald-700'
+                  : 'bg-gray-100 text-gray-600'
+              }`}
+            >
+              {order.fulfillmentStatus === 'cancelled' ? 'CANCELLED' : order.fulfillmentStatus}
+            </span>
+
+            {/* Expand/Collapse Chevron */}
+            <div className="text-gray-400 p-0.5">
+              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </div>
+          </div>
+        </div>
+
+        {/* Expanded Card Details */}
+        {isExpanded && (
+          <div className="px-4 pb-4 pt-2 border-t border-gray-100 bg-gray-50/50">
+            {/* Customer contact info */}
+            <div className="flex items-center justify-between text-xs text-gray-500 mb-3 pb-2 border-b border-gray-200/60">
+              <div>
+                <span>Contact: </span>
+                <span className="font-semibold text-gray-800">
+                  {order.customerContact || 'Walk-in / None'}
+                </span>
+                {order.isGuest && <span className="ml-1.5 text-gray-400">(Guest checkout)</span>}
+              </div>
+              <div>
+                <span>Payment Method: </span>
+                <span className="font-semibold text-gray-800 uppercase">
+                  {order.paymentMethod === 'counter'
+                    ? 'Pay at Counter'
+                    : order.paymentMethod}
+                </span>
+              </div>
+            </div>
+
+            {/* Items List */}
+            <div className="space-y-2.5 mb-4">
+              {order.items.map((item, itemIdx) => (
+                <div
+                  key={item.id || itemIdx}
+                  className="bg-white p-3 rounded-lg border border-gray-200/80 shadow-2xs"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-black text-gray-900 text-sm">
+                          {item.quantity}x
+                        </span>
+                        <span className="font-bold text-gray-900 text-sm">
+                          {item.name}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          ({item.chineseName})
+                        </span>
+                        {item.isKidPortion && (
+                          <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded">
+                            Kid Portion
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Custom Add-ons */}
+                      {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+                        <div className="mt-1 pl-4 space-y-0.5 text-xs text-gray-600">
+                          {item.selectedAddOns.map((addon) => (
+                            <div key={addon.id} className="flex items-center gap-1">
+                              <span className="text-terracotta font-medium">+</span>
+                              <span>
+                                {addon.quantity > 1 ? `${addon.quantity}x ` : ''}
+                                {addon.name} ({addon.chineseName})
+                              </span>
+                              <span className="text-gray-400 font-medium">
+                                (${addon.price.toFixed(2)})
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Special Instructions */}
+                      {item.specialInstructions && (
+                        <div className="mt-1.5 pl-4 text-xs italic text-amber-800 bg-amber-50/70 p-1 rounded border-l-2 border-amber-400">
+                          Note: {item.specialInstructions}
+                        </div>
+                      )}
+                    </div>
+
+                    <span className="font-bold text-gray-900 text-sm shrink-0">
+                      ${item.itemTotal.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Financial Summary & Breakdown */}
+            <div className="bg-white p-3 rounded-lg border border-gray-200/80 mb-4 text-xs space-y-1">
+              <div className="flex justify-between text-gray-500">
+                <span>Subtotal</span>
+                <span>${order.subtotal.toFixed(2)}</span>
+              </div>
+              {order.takeawayFee > 0 && (
+                <div className="flex justify-between text-gray-500">
+                  <span>Takeaway packaging fee</span>
+                  <span>+${order.takeawayFee.toFixed(2)}</span>
+                </div>
+              )}
+              {order.discountAmount > 0 && (
+                <div className="flex justify-between text-emerald-600 font-medium">
+                  <span>Discount {order.discountDescription ? `(${order.discountDescription})` : ''}</span>
+                  <span>-${order.discountAmount.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center pt-2 border-t font-black text-gray-900 text-base">
+                <span>Total Payable</span>
+                <span className="text-lg text-terracotta">${order.total.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-200">
+              {/* Kitchen workflow progression buttons */}
+              <div className="flex items-center gap-1.5">
+                {order.fulfillmentStatus === 'cancelled' ? (
+                  <div className="flex items-center gap-1.5 text-red-700 text-xs font-bold">
+                    <AlertTriangle className="w-4 h-4 text-red-600" />
+                    <span>Customer cancelled before cooking started.</span>
+                  </div>
+                ) : (
+                  <>
+                    {order.fulfillmentStatus === 'received' && (
+                      <button
+                        type="button"
+                        onClick={() => handleStatusStep(order.id, 'preparing')}
+                        className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold rounded-lg transition-colors"
+                      >
+                        Mark Preparing
+                      </button>
+                    )}
+                    {order.fulfillmentStatus === 'preparing' && (
+                      <button
+                        type="button"
+                        onClick={() => handleStatusStep(order.id, 'ready')}
+                        className="px-3 py-1.5 bg-teal-100 hover:bg-teal-200 text-teal-800 text-xs font-bold rounded-lg transition-colors"
+                      >
+                        Mark Ready
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Primary fulfillment actions */}
+              <div className="flex items-center gap-2 ml-auto">
+                {order.fulfillmentStatus === 'cancelled' && (
+                  <button
+                    type="button"
+                    onClick={() => handleArchiveClick(order.id)}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Acknowledge & Archive (确认并归档)</span>
+                  </button>
+                )}
+
+                {isUnpaid && order.fulfillmentStatus !== 'cancelled' && order.fulfillmentStatus !== 'fulfilled' && order.fulfillmentStatus !== 'archived' && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenNoShow(order)}
+                    className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 transition-colors"
+                    title="Report order as abandoned/uncollected"
+                  >
+                    <Ban className="w-3.5 h-3.5 text-rose-600" />
+                    <span>No-Show (弃单拉黑)</span>
+                  </button>
+                )}
+
+                {order.fulfillmentStatus !== 'fulfilled' && order.fulfillmentStatus !== 'archived' && order.fulfillmentStatus !== 'cancelled' && (
+                  <button
+                    type="button"
+                    onClick={() => handleFulfillClick(order)}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
+                  >
+                    {isUnpaid && <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />}
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    {isUnpaid ? 'Collect Payment & Fulfill' : 'Mark Fulfilled'}
+                  </button>
+                )}
+
+                {order.fulfillmentStatus === 'fulfilled' && (
+                  <button
+                    type="button"
+                    onClick={() => handleArchiveClick(order.id)}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-800 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
+                  >
+                    <Archive className="w-3.5 h-3.5" />
+                    Archive Order
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -298,15 +647,27 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
             )}
           </button>
 
-          {/* Clear orders button */}
-          {orders.length > 0 && (
+          {/* Fulfilled tab action: Archive All */}
+          {filter === 'fulfilled' && fulfilledOrders.length > 0 && (
             <button
-              onClick={handleClearOrders}
-              title="Clear all kitchen orders"
-              className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 hover:text-red-600 hover:bg-red-50 border border-gray-300 transition-all flex items-center gap-1"
+              onClick={handleArchiveAllFulfilled}
+              title="Archive all fulfilled orders"
+              className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-300 transition-all flex items-center gap-1.5 shadow-2xs"
+            >
+              <Archive className="w-3.5 h-3.5" />
+              Archive All ({fulfilledOrders.length})
+            </button>
+          )}
+
+          {/* Archived tab action: Delete Archives */}
+          {filter === 'archived' && archivedOrders.length > 0 && (
+            <button
+              onClick={handleDeleteArchived}
+              title="Permanently delete all archived orders"
+              className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 hover:text-red-600 hover:bg-red-50 border border-gray-300 transition-all flex items-center gap-1.5 shadow-2xs"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              Clear Queue
+              Delete Archives ({archivedOrders.length})
             </button>
           )}
         </div>
@@ -331,316 +692,27 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
               : 'Orders moved to this status will be listed here.'}
           </p>
         </div>
+      ) : filter === 'archived' ? (
+        <div className="space-y-6">
+          {archivedOrdersByDay.map((group) => (
+            <div key={group.dateKey} className="space-y-2.5">
+              <div className="flex items-center justify-between px-2.5 py-1.5 bg-gray-200/70 rounded-lg text-xs font-bold text-gray-700">
+                <span className="uppercase tracking-wider">{group.label}</span>
+                <span className="text-gray-500 font-medium">
+                  {group.orders.length} {group.orders.length === 1 ? 'order' : 'orders'} • ${group.dayRevenue.toFixed(2)}
+                </span>
+              </div>
+              <div className="space-y-3">
+                {group.orders.map((order) => renderOrderCard(order, false))}
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="space-y-3">
-          {displayedOrders.map((order, index) => {
-            const isOldestActive = filter === 'active' && index === 0;
-            const isExpanded = expandedId === order.id;
-            const isNew = animatingOrderIds.has(order.id);
-            const isUnpaid = order.paymentStatus === 'unpaid';
-            const isCancelled = order.fulfillmentStatus === 'cancelled';
-
-            return (
-              <div
-                key={order.id}
-                className={`bg-white rounded-xl transition-all duration-200 border-2 overflow-hidden shadow-xs ${
-                  isCancelled
-                    ? 'border-red-500 bg-red-50/40 ring-4 ring-red-400/20'
-                    : isNew
-                    ? 'border-terracotta ring-4 ring-terracotta/20 bg-amber-50/40 animate-pulse'
-                    : isOldestActive
-                    ? 'border-terracotta shadow-md'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                {/* Compact Card Header: Click to Expand / Collapse */}
-                <div
-                  onClick={() => handleToggleExpand(order.id)}
-                  className="p-3.5 cursor-pointer flex items-center justify-between select-none"
-                >
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    {/* Order Number Badge */}
-                    <span
-                      className={`font-black text-sm px-2.5 py-0.5 rounded-lg text-white ${
-                        isOldestActive ? 'bg-terracotta' : 'bg-navy'
-                      }`}
-                    >
-                      {order.orderNumber}
-                    </span>
-
-                    {/* Oldest Active Indicator */}
-                    {isOldestActive && (
-                      <span className="text-[11px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">
-                        Oldest in Queue
-                      </span>
-                    )}
-
-                    {/* New Order Arrival Indicator */}
-                    {isNew && (
-                      <span className="text-[11px] font-bold bg-terracotta text-white px-2 py-0.5 rounded-md animate-bounce">
-                        NEW ORDER
-                      </span>
-                    )}
-
-                    {/* Relative and Clock Time */}
-                    <div className="flex items-center gap-1 text-xs text-gray-500 font-medium">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>{formatRelativeTime(order.createdAt)}</span>
-                      <span className="text-gray-300">•</span>
-                      <span>{formatClockTime(order.createdAt)}</span>
-                    </div>
-
-                    {/* Customer Name */}
-                    <span className="text-xs text-gray-700 font-semibold">
-                      {order.customerName}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {/* Fulfillment Type Badge */}
-                    <span
-                      className={`text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${
-                        order.fulfillmentType === 'takeaway'
-                          ? 'bg-purple-100 text-purple-800'
-                          : 'bg-blue-100 text-blue-800'
-                      }`}
-                    >
-                      <ShoppingBag className="w-3 h-3" />
-                      {order.fulfillmentType === 'takeaway' ? 'Takeaway' : 'Dine-in'}
-                    </span>
-
-                    {/* Payment Status Badge */}
-                    {isUnpaid ? (
-                      <span className="text-xs font-black px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3 text-amber-600" />
-                        UNPAID
-                      </span>
-                    ) : (
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                        Paid
-                      </span>
-                    )}
-
-                    {/* Status Pill */}
-                    <span
-                      className={`text-xs font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
-                        order.fulfillmentStatus === 'cancelled'
-                          ? 'bg-red-600 text-white font-black animate-pulse'
-                          : order.fulfillmentStatus === 'received'
-                          ? 'bg-blue-50 text-blue-700'
-                          : order.fulfillmentStatus === 'preparing'
-                          ? 'bg-amber-50 text-amber-700'
-                          : order.fulfillmentStatus === 'ready'
-                          ? 'bg-teal-50 text-teal-700'
-                          : order.fulfillmentStatus === 'fulfilled'
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}
-                    >
-                      {order.fulfillmentStatus === 'cancelled' ? 'CANCELLED' : order.fulfillmentStatus}
-                    </span>
-
-                    {/* Expand/Collapse Chevron */}
-                    <div className="text-gray-400 p-0.5">
-                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Expanded Card Details */}
-                {isExpanded && (
-                  <div className="px-4 pb-4 pt-2 border-t border-gray-100 bg-gray-50/50">
-                    {/* Customer contact info */}
-                    <div className="flex items-center justify-between text-xs text-gray-500 mb-3 pb-2 border-b border-gray-200/60">
-                      <div>
-                        <span>Contact: </span>
-                        <span className="font-semibold text-gray-800">
-                          {order.customerContact || 'Walk-in / None'}
-                        </span>
-                        {order.isGuest && <span className="ml-1.5 text-gray-400">(Guest checkout)</span>}
-                      </div>
-                      <div>
-                        <span>Payment Method: </span>
-                        <span className="font-semibold text-gray-800 uppercase">
-                          {order.paymentMethod === 'counter'
-                            ? 'Pay at Counter'
-                            : order.paymentMethod}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Items List */}
-                    <div className="space-y-2.5 mb-4">
-                      {order.items.map((item, itemIdx) => (
-                        <div
-                          key={item.id || itemIdx}
-                          className="bg-white p-3 rounded-lg border border-gray-200/80 shadow-2xs"
-                        >
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-black text-gray-900 text-sm">
-                                  {item.quantity}x
-                                </span>
-                                <span className="font-bold text-gray-900 text-sm">
-                                  {item.name}
-                                </span>
-                                <span className="text-xs text-gray-500">
-                                  ({item.chineseName})
-                                </span>
-                                {item.isKidPortion && (
-                                  <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded">
-                                    Kid Portion
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* Custom Add-ons */}
-                              {item.selectedAddOns && item.selectedAddOns.length > 0 && (
-                                <div className="mt-1 pl-4 space-y-0.5 text-xs text-gray-600">
-                                  {item.selectedAddOns.map((addon) => (
-                                    <div key={addon.id} className="flex items-center gap-1">
-                                      <span className="text-terracotta font-medium">+</span>
-                                      <span>
-                                        {addon.quantity > 1 ? `${addon.quantity}x ` : ''}
-                                        {addon.name} ({addon.chineseName})
-                                      </span>
-                                      <span className="text-gray-400 font-medium">
-                                        (${addon.price.toFixed(2)})
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-
-                              {/* Special Instructions */}
-                              {item.specialInstructions && (
-                                <div className="mt-1.5 pl-4 text-xs italic text-amber-800 bg-amber-50/70 p-1 rounded border-l-2 border-amber-400">
-                                  Note: {item.specialInstructions}
-                                </div>
-                              )}
-                            </div>
-
-                            <span className="font-bold text-gray-900 text-sm shrink-0">
-                              ${item.itemTotal.toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Financial Summary & Breakdown */}
-                    <div className="bg-white p-3 rounded-lg border border-gray-200/80 mb-4 text-xs space-y-1">
-                      <div className="flex justify-between text-gray-500">
-                        <span>Subtotal</span>
-                        <span>${order.subtotal.toFixed(2)}</span>
-                      </div>
-                      {order.takeawayFee > 0 && (
-                        <div className="flex justify-between text-gray-500">
-                          <span>Takeaway packaging fee</span>
-                          <span>+${order.takeawayFee.toFixed(2)}</span>
-                        </div>
-                      )}
-                      {order.discountAmount > 0 && (
-                        <div className="flex justify-between text-emerald-600 font-medium">
-                          <span>Discount {order.discountDescription ? `(${order.discountDescription})` : ''}</span>
-                          <span>-${order.discountAmount.toFixed(2)}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between items-center pt-2 border-t font-black text-gray-900 text-base">
-                        <span>Total Payable</span>
-                        <span className="text-lg text-terracotta">${order.total.toFixed(2)}</span>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-200">
-                      {/* Kitchen workflow progression buttons */}
-                      <div className="flex items-center gap-1.5">
-                        {order.fulfillmentStatus === 'cancelled' ? (
-                          <div className="flex items-center gap-1.5 text-red-700 text-xs font-bold">
-                            <AlertTriangle className="w-4 h-4 text-red-600" />
-                            <span>Customer cancelled before cooking started.</span>
-                          </div>
-                        ) : (
-                          <>
-                            {order.fulfillmentStatus === 'received' && (
-                              <button
-                                type="button"
-                                onClick={() => handleStatusStep(order.id, 'preparing')}
-                                className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold rounded-lg transition-colors"
-                              >
-                                Mark Preparing
-                              </button>
-                            )}
-                            {order.fulfillmentStatus === 'preparing' && (
-                              <button
-                                type="button"
-                                onClick={() => handleStatusStep(order.id, 'ready')}
-                                className="px-3 py-1.5 bg-teal-100 hover:bg-teal-200 text-teal-800 text-xs font-bold rounded-lg transition-colors"
-                              >
-                                Mark Ready
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-
-                      {/* Primary fulfillment actions */}
-                      <div className="flex items-center gap-2 ml-auto">
-                        {order.fulfillmentStatus === 'cancelled' && (
-                          <button
-                            type="button"
-                            onClick={() => handleArchiveClick(order.id)}
-                            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>Acknowledge & Archive (确认并归档)</span>
-                          </button>
-                        )}
-
-                        {isUnpaid && order.fulfillmentStatus !== 'cancelled' && order.fulfillmentStatus !== 'fulfilled' && order.fulfillmentStatus !== 'archived' && (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenNoShow(order)}
-                            className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 transition-colors"
-                            title="Report order as abandoned/uncollected"
-                          >
-                            <Ban className="w-3.5 h-3.5 text-rose-600" />
-                            <span>No-Show (弃单拉黑)</span>
-                          </button>
-                        )}
-
-                        {order.fulfillmentStatus !== 'fulfilled' && order.fulfillmentStatus !== 'archived' && order.fulfillmentStatus !== 'cancelled' && (
-                          <button
-                            type="button"
-                            onClick={() => handleFulfillClick(order)}
-                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
-                          >
-                            {isUnpaid && <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />}
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            {isUnpaid ? 'Collect Payment & Fulfill' : 'Mark Fulfilled'}
-                          </button>
-                        )}
-
-                        {order.fulfillmentStatus === 'fulfilled' && (
-                          <button
-                            type="button"
-                            onClick={() => handleArchiveClick(order.id)}
-                            className="px-4 py-2 bg-gray-700 hover:bg-gray-800 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
-                          >
-                            <Archive className="w-3.5 h-3.5" />
-                            Archive Order
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {displayedOrders.map((order, index) =>
+            renderOrderCard(order, filter === 'active' && index === 0)
+          )}
         </div>
       )}
 

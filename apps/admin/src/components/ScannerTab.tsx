@@ -3,7 +3,12 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { QrCode, Camera, CheckCircle, AlertTriangle, Search, Plus, Minus, ShieldCheck, User } from 'lucide-react';
 import { api, UserProfile } from '@nyopasta/shared';
 
-export function ScannerTab() {
+interface ScannerTabProps {
+  prefillUserId?: string | null;
+  onClearPrefill?: () => void;
+}
+
+export function ScannerTab({ prefillUserId, onClearPrefill }: ScannerTabProps = {}) {
   const [scanning, setScanning] = useState(false);
   const [scannedUserId, setScannedUserId] = useState('');
   const [manualInput, setManualInput] = useState('');
@@ -14,6 +19,16 @@ export function ScannerTab() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
+
+  // Auto-populate when prefilled from Users page
+  useEffect(() => {
+    if (prefillUserId && prefillUserId.trim()) {
+      const id = prefillUserId.trim();
+      setManualInput(id);
+      handleCodeScanned(id);
+      onClearPrefill?.();
+    }
+  }, [prefillUserId]);
 
   const stopScannerInternal = async () => {
     if (scannerRef.current) {

@@ -161,6 +161,30 @@ class LocalReactiveStore {
     this.notifyOrders();
   }
 
+  archiveAllFulfilled(): void {
+    let changed = false;
+    this.orders = this.orders.map((o) => {
+      if (o.fulfillmentStatus === 'fulfilled') {
+        changed = true;
+        return { ...o, fulfillmentStatus: 'archived', updatedAt: new Date().toISOString() };
+      }
+      return o;
+    });
+    if (changed) {
+      this.save();
+      this.notifyOrders();
+    }
+  }
+
+  deleteArchivedOrders(): void {
+    const beforeLen = this.orders.length;
+    this.orders = this.orders.filter((o) => o.fulfillmentStatus !== 'archived');
+    if (this.orders.length !== beforeLen) {
+      this.save();
+      this.notifyOrders();
+    }
+  }
+
   getOrders(): Order[] {
     return [...this.orders].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }
@@ -171,7 +195,7 @@ class LocalReactiveStore {
     const now = new Date().toISOString();
     const newOrder: Order = {
       ...orderData,
-      id: `ord_${Date.now()}`,
+      id: `ord_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       orderNumber,
       createdAt: now,
       updatedAt: now,
@@ -248,6 +272,19 @@ class LocalReactiveStore {
 
   getAllProfiles(): UserProfile[] {
     return Array.from(this.profiles.values());
+  }
+
+  deleteProfile(userId: string): void {
+    let deleted = this.profiles.delete(userId);
+    for (const [key, p] of this.profiles.entries()) {
+      if (p.id === userId || p.authUserId === userId) {
+        this.profiles.delete(key);
+        deleted = true;
+      }
+    }
+    if (deleted) {
+      this.save();
+    }
   }
 
   updateUserStamps(
@@ -365,13 +402,13 @@ class LocalReactiveStore {
 
   private notifyProfiles(userId?: string) {
     if (userId) {
-      const p = this.getProfile(userId);
+      const p = this.profiles.get(userId);
       const set = this.profileListeners.get(userId);
-      if (set) set.forEach((fn) => fn(p));
+      if (set && p) set.forEach((fn) => fn(p));
     } else {
       this.profileListeners.forEach((set, uid) => {
-        const p = this.getProfile(uid);
-        set.forEach((fn) => fn(p));
+        const p = this.profiles.get(uid);
+        if (p) set.forEach((fn) => fn(p));
       });
     }
   }
@@ -739,6 +776,40 @@ export const api = {
     return this.updateOrderStatus(orderId, { fulfillmentStatus: 'cancelled' });
   },
 
+  async archiveAllFulfilledOrders(): Promise<void> {
+    if (!isCloudConnected) {
+      localStore.archiveAllFulfilled();
+      return;
+    }
+    try {
+      const orders = await this.getOrders();
+      const fulfilled = orders.filter((o) => o.fulfillmentStatus === 'fulfilled');
+      await Promise.all(
+        fulfilled.map((o) =>
+          databases.updateDocument(DB_ID, 'orders', o.id, {
+            fulfillmentStatus: 'archived',
+          })
+        )
+      );
+    } catch {
+      localStore.archiveAllFulfilled();
+    }
+  },
+
+  async deleteArchivedOrders(): Promise<void> {
+    if (!isCloudConnected) {
+      localStore.deleteArchivedOrders();
+      return;
+    }
+    try {
+      const orders = await this.getOrders();
+      const archived = orders.filter((o) => o.fulfillmentStatus === 'archived');
+      await Promise.all(archived.map((o) => databases.deleteDocument(DB_ID, 'orders', o.id)));
+    } catch {
+      localStore.deleteArchivedOrders();
+    }
+  },
+
   async clearOrders(): Promise<void> {
     if (!isCloudConnected) {
       localStore.clearOrders();
@@ -886,6 +957,24 @@ export const api = {
     } catch (err) {
       return localStore.getAllProfiles();
     }
+  },
+
+  async deleteCustomerProfile(userId: string): Promise<void> {
+    if (!isCloudConnected) {
+      localStore.deleteProfile(userId);
+      return;
+    }
+    try {
+      const prof = await this.getUserProfile(userId);
+      await databases.deleteDocument(DB_ID, 'profiles', prof.id);
+    } catch {
+      try {
+        await databases.deleteDocument(DB_ID, 'profiles', userId);
+      } catch {
+        // ignore
+      }
+    }
+    localStore.deleteProfile(userId);
   },
 
   async updateUserStamps(

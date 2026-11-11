@@ -14,6 +14,7 @@ import {
   Users,
   Settings,
   ChevronDown,
+  BarChart2,
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { OrdersTab } from './components/OrdersTab';
@@ -21,6 +22,7 @@ import { InventoryTab } from './components/InventoryTab';
 import { SettingsTab } from './components/SettingsTab';
 import { ScannerTab } from './components/ScannerTab';
 import { CustomersTab } from './components/CustomersTab';
+import { StatsTab } from './components/StatsTab';
 import { AdminLogin } from './components/AdminLogin';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { unlockAudioContext } from './utils/audio';
@@ -29,7 +31,8 @@ export default function App() {
   const [adminUser, setAdminUser] = useState<string | null>(() => {
     return typeof window !== 'undefined' ? localStorage.getItem('nyo_admin_auth') : null;
   });
-  const [activeTab, setActiveTab] = useState<'orders' | 'inventory' | 'scanner' | 'customers' | 'settings'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'inventory' | 'scanner' | 'customers' | 'stats' | 'settings'>('orders');
+  const [scannerPrefillId, setScannerPrefillId] = useState<string | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>(INITIAL_MENU_ITEMS);
   const [orders, setOrders] = useState<Order[]>([]);
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS);
@@ -207,12 +210,25 @@ export default function App() {
 
         {activeTab === 'scanner' && (
           <ErrorBoundary fallbackTitle="QR Scanner could not start">
-            <ScannerTab />
+            <ScannerTab
+              prefillUserId={scannerPrefillId}
+              onClearPrefill={() => setScannerPrefillId(null)}
+            />
           </ErrorBoundary>
         )}
 
         {activeTab === 'customers' && (
-          <CustomersTab onSelectCustomerForCredit={() => setActiveTab('scanner')} />
+          <CustomersTab
+            orders={orders}
+            onSelectCustomerForCredit={(userId) => {
+              setScannerPrefillId(userId);
+              setActiveTab('scanner');
+            }}
+          />
+        )}
+
+        {activeTab === 'stats' && (
+          <StatsTab orders={orders} />
         )}
 
         {activeTab === 'settings' && (
@@ -290,6 +306,17 @@ export default function App() {
         >
           <Users className="w-5 h-5 mb-0.5" />
           Users
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('stats')}
+          className={`flex flex-col items-center text-xs font-bold transition-colors ${
+            activeTab === 'stats' ? 'text-terracotta' : 'text-gray-500 hover:text-navy'
+          }`}
+        >
+          <BarChart2 className="w-5 h-5 mb-0.5" />
+          Stats
         </button>
 
         <button
