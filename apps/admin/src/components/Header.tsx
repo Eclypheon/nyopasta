@@ -1,0 +1,86 @@
+import React from 'react';
+import { StoreSettings, forceResetPwaCache } from '@nyopasta/shared';
+import { Power, RefreshCw, Sparkles } from 'lucide-react';
+
+interface HeaderProps {
+  storeSettings: StoreSettings;
+  onQuickToggleShop?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({
+  storeSettings,
+  onQuickToggleShop,
+}) => {
+  const isClosed = storeSettings.isManuallyClosed;
+
+  const handleResetCache = async () => {
+    const ok = window.confirm(
+      'Force reset PWA cache and reload fresh? This will unregister service workers, clear CacheStorage, and reload the latest build.'
+    );
+    if (ok) {
+      await forceResetPwaCache();
+    }
+  };
+
+  return (
+    <header className="bg-navy text-white px-4 py-3 sticky top-0 z-30 shadow-md flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <img
+          src="/stamp-darkblue.png"
+          alt="NYO Pasta"
+          className="w-9 h-9 rounded-full bg-white p-0.5 object-contain shadow-xs"
+        />
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="font-black text-sm tracking-wide leading-tight">NYO KITCHEN & ADMIN</h1>
+            <span
+              className={`text-[10px] font-black px-2 py-0.2 rounded-full uppercase tracking-wider ${
+                isClosed ? 'bg-red-500/90 text-white' : 'bg-emerald-500/90 text-white'
+              }`}
+            >
+              {isClosed ? 'Shop Closed' : 'Live'}
+            </span>
+          </div>
+          <p className="text-[11px] text-gray-300">Toa Payoh Palm Spring</p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        {/* Quick Shop Open/Close Toggle */}
+        <button
+          type="button"
+          onClick={onQuickToggleShop}
+          className={`text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xs transition-colors ${
+            isClosed
+              ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+              : 'bg-red-600 hover:bg-red-700 text-white'
+          }`}
+          title={isClosed ? 'Open shop for the day' : 'Close shop for the day'}
+        >
+          {isClosed ? (
+            <>
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Open</span>
+            </>
+          ) : (
+            <>
+              <Power className="w-3.5 h-3.5" />
+              <span>Close</span>
+            </>
+          )}
+        </button>
+
+        {/* PWA On-Device Cache Reset Button */}
+        <button
+          type="button"
+          onClick={handleResetCache}
+          title="Force reset PWA cache and reload"
+          className="p-1.5 text-gray-300 hover:text-white rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 transition-colors"
+          aria-label="Force reset PWA cache"
+        >
+          <RefreshCw className="w-4 h-4" />
+        </button>
+      </div>
+    </header>
+  );
+};

@@ -1,0 +1,641 @@
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Order, api } from '@nyopasta/shared';
+import {
+  Clock,
+  CheckCircle2,
+  AlertTriangle,
+  Archive,
+  ChevronDown,
+  ChevronUp,
+  Volume2,
+  VolumeX,
+  PlusCircle,
+  ShoppingBag,
+  Utensils,
+  Sparkles,
+} from 'lucide-react';
+import { playOrderChime, unlockAudioContext } from '../utils/audio';
+import { UnpaidWarningModal } from './UnpaidWarningModal';
+
+interface OrdersTabProps {
+  orders: Order[];
+  onOrderUpdated?: () => void;
+}
+
+export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) => {
+  const [filter, setFilter] = useState<'active' | 'fulfilled' | 'archived'>('active');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [animatingOrderIds, setAnimatingOrderIds] = useState<Set<string>>(new Set());
+  const [unpaidModalOrder, setUnpaidModalOrder] = useState<Order | null>(null);
+
+  // Track previous order IDs to detect newly arrived orders
+  const prevOrderIdsRef = useRef<Set<string>>(new Set(orders.map((o) => o.id)));
+  const initialLoadRef = useRef<boolean>(true);
+
+  // Sort orders oldest first
+  const sortedOrders = useMemo(() => {
+    return [...orders].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  }, [orders]);
+
+  const activeOrders = useMemo(() => {
+    return sortedOrders.filter((o) => ['received', 'preparing', 'ready'].includes(o.fulfillmentStatus));
+  }, [sortedOrders]);
+
+  const fulfilledOrders = useMemo(() => {
+    return sortedOrders.filter((o) => o.fulfillmentStatus === 'fulfilled');
+  }, [sortedOrders]);
+
+  const archivedOrders = useMemo(() => {
+    return sortedOrders.filter((o) => o.fulfillmentStatus === 'archived');
+  }, [sortedOrders]);
+
+  // Set oldest active order expanded by default
+  useEffect(() => {
+    if (activeOrders.length > 0) {
+      // If no order currently expanded or expanded order is no longer active, default to oldest active
+      if (!expandedId || !activeOrders.some((o) => o.id === expandedId)) {
+        setExpandedId(activeOrders[0].id);
+      }
+    } else {
+      setExpandedId(null);
+    }
+  }, [activeOrders]);
+
+  // Detect newly arrived orders for audio chime and visual animation
+  useEffect(() => {
+    if (initialLoadRef.current) {
+      initialLoadRef.current = false;
+      prevOrderIdsRef.current = new Set(orders.map((o) => o.id));
+      return;
+    }
+
+    const currentIds = new Set(orders.map((o) => o.id));
+    const newIds: string[] = [];
+
+    currentIds.forEach((id) => {
+      if (!prevOrderIdsRef.current.has(id)) {
+        newIds.push(id);
+      }
+    });
+
+    if (newIds.length > 0) {
+      if (soundEnabled) {
+        playOrderChime();
+      }
+
+      setAnimatingOrderIds((prev) => {
+        const next = new Set(prev);
+        newIds.forEach((id) => next.add(id));
+        return next;
+      });
+
+      // Clear animation after 6 seconds
+      const timer = setTimeout(() => {
+        setAnimatingOrderIds((prev) => {
+          const next = new Set(prev);
+          newIds.forEach((id) => next.delete(id));
+          return next;
+        });
+      }, 6000);
+
+      // Expand the first new order if user is on active tab
+      if (filter === 'active' && newIds[0]) {
+        setExpandedId(newIds[0]);
+      }
+
+      prevOrderIdsRef.current = currentIds;
+      return () => clearTimeout(timer);
+    }
+
+    prevOrderIdsRef.current = currentIds;
+  }, [orders, soundEnabled, filter]);
+
+  const handleToggleSound = () => {
+    unlockAudioContext();
+    setSoundEnabled((prev) => !prev);
+  };
+
+  const handleToggleExpand = (id: string) => {
+    unlockAudioContext();
+    setExpandedId((prev) => (prev === id ? null : id));
+  };
+
+  const handleFulfillClick = (order: Order) => {
+    unlockAudioContext();
+    if (order.paymentStatus === 'unpaid') {
+      setUnpaidModalOrder(order);
+    } else {
+      markOrderFulfilled(order.id, false);
+    }
+  };
+
+  const markOrderFulfilled = async (orderId: string, markPaid: boolean) => {
+    try {
+      const updates: Partial<Pick<Order, 'fulfillmentStatus' | 'paymentStatus'>> = {
+        fulfillmentStatus: 'fulfilled',
+      };
+      if (markPaid) {
+        updates.paymentStatus = 'paid';
+      }
+      await api.updateOrderStatus(orderId, updates);
+      onOrderUpdated?.();
+    } catch (err) {
+      console.error('Error fulfilling order:', err);
+    } finally {
+      setUnpaidModalOrder(null);
+    }
+  };
+
+  const handleArchiveClick = async (orderId: string) => {
+    try {
+      await api.updateOrderStatus(orderId, { fulfillmentStatus: 'archived' });
+      onOrderUpdated?.();
+    } catch (err) {
+      console.error('Error archiving order:', err);
+    }
+  };
+
+  const handleStatusStep = async (orderId: string, nextStatus: 'preparing' | 'ready') => {
+    try {
+      await api.updateOrderStatus(orderId, { fulfillmentStatus: nextStatus });
+      onOrderUpdated?.();
+    } catch (err) {
+      console.error('Error advancing status:', err);
+    }
+  };
+
+  // Helper to create a test order if kitchen queue is empty
+  const handleCreateTestOrder = async () => {
+    unlockAudioContext();
+    try {
+      const randomIsPaid = Math.random() > 0.5;
+      await api.createOrder({
+        customerName: 'Customer ' + Math.floor(100 + Math.random() * 900),
+        customerContact: '9' + Math.floor(1000000 + Math.random() * 9000000),
+        isGuest: true,
+        fulfillmentType: Math.random() > 0.5 ? 'dine_in' : 'takeaway',
+        takeawayFee: 0.3,
+        subtotal: 10.5,
+        discountAmount: 0,
+        total: 10.8,
+        paymentMethod: randomIsPaid ? 'paynow' : 'counter',
+        paymentStatus: randomIsPaid ? 'paid' : 'unpaid',
+        fulfillmentStatus: 'received',
+        mainsCount: 1,
+        stampsEarned: 1,
+        items: [
+          {
+            id: 'item_' + Date.now(),
+            menuItemId: 'main-1',
+            name: 'Prawn Cream Pasta',
+            chineseName: '奶油虾面',
+            category: 'mains',
+            isKidPortion: false,
+            unitPrice: 8.5,
+            quantity: 1,
+            selectedAddOns: [
+              {
+                id: 'addon-scrambled-egg',
+                name: 'Scrambled Egg',
+                chineseName: '滑蛋',
+                price: 1.0,
+                quantity: 1,
+              },
+              {
+                id: 'addon-sauce-mentaiko',
+                name: 'Extra Sauce (Mentaiko)',
+                chineseName: '加酱 (明太子)',
+                price: 0.5,
+                quantity: 1,
+              },
+            ],
+            specialInstructions: 'Less spicy please',
+            itemTotal: 10.0,
+          },
+        ],
+      });
+      onOrderUpdated?.();
+    } catch (err) {
+      console.error('Failed to create test order:', err);
+    }
+  };
+
+  const displayedOrders =
+    filter === 'active'
+      ? activeOrders
+      : filter === 'fulfilled'
+      ? fulfilledOrders
+      : archivedOrders;
+
+  const formatRelativeTime = (isoString: string) => {
+    const diff = Math.max(0, Math.floor((Date.now() - new Date(isoString).getTime()) / 1000));
+    if (diff < 60) return `${diff}s ago`;
+    const mins = Math.floor(diff / 60);
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    return `${hours}h ago`;
+  };
+
+  const formatClockTime = (isoString: string) => {
+    return new Date(isoString).toLocaleTimeString('en-SG', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Top Controls Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* Filter Pills */}
+        <div className="flex items-center gap-2 bg-gray-200/80 p-1 rounded-xl">
+          <button
+            onClick={() => setFilter('active')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              filter === 'active'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Active Queue ({activeOrders.length})
+          </button>
+          <button
+            onClick={() => setFilter('fulfilled')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              filter === 'fulfilled'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Fulfilled ({fulfilledOrders.length})
+          </button>
+          <button
+            onClick={() => setFilter('archived')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              filter === 'archived'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Archived ({archivedOrders.length})
+          </button>
+        </div>
+
+        {/* Action Controls */}
+        <div className="flex items-center gap-2">
+          {/* Sound alert chime toggle */}
+          <button
+            onClick={handleToggleSound}
+            title={soundEnabled ? 'Order sound alert enabled' : 'Order sound muted'}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border transition-all ${
+              soundEnabled
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                : 'bg-gray-100 text-gray-500 border-gray-300 hover:bg-gray-200'
+            }`}
+          >
+            {soundEnabled ? (
+              <>
+                <Volume2 className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                Chime On
+              </>
+            ) : (
+              <>
+                <VolumeX className="w-3.5 h-3.5 text-gray-400" />
+                Chime Off
+              </>
+            )}
+          </button>
+
+          {/* Test order generator */}
+          <button
+            onClick={handleCreateTestOrder}
+            title="Inject simulated incoming order"
+            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-navy text-white hover:bg-navy-900 flex items-center gap-1.5 shadow-sm transition-all"
+          >
+            <PlusCircle className="w-3.5 h-3.5" />
+            + Test Order
+          </button>
+        </div>
+      </div>
+
+      {/* Orders List */}
+      {displayedOrders.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
+          <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-400 mx-auto flex items-center justify-center mb-3">
+            <Utensils className="w-6 h-6" />
+          </div>
+          <h3 className="font-bold text-gray-800 text-base">
+            {filter === 'active'
+              ? 'No active kitchen orders'
+              : filter === 'fulfilled'
+              ? 'No fulfilled orders yet'
+              : 'No archived orders'}
+          </h3>
+          <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+            {filter === 'active'
+              ? 'New orders placed on the customer app will appear here in real time with an audio chime.'
+              : 'Orders moved to this status will be listed here.'}
+          </p>
+          {filter === 'active' && (
+            <button
+              onClick={handleCreateTestOrder}
+              className="mt-4 px-4 py-2 bg-terracotta text-white rounded-xl text-xs font-bold hover:bg-terracotta-600 inline-flex items-center gap-1.5 shadow-sm"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Simulate First Order
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {displayedOrders.map((order, index) => {
+            const isOldestActive = filter === 'active' && index === 0;
+            const isExpanded = expandedId === order.id;
+            const isNew = animatingOrderIds.has(order.id);
+            const isUnpaid = order.paymentStatus === 'unpaid';
+
+            return (
+              <div
+                key={order.id}
+                className={`bg-white rounded-xl transition-all duration-200 border-2 overflow-hidden shadow-xs ${
+                  isNew
+                    ? 'border-terracotta ring-4 ring-terracotta/20 bg-amber-50/40 animate-pulse'
+                    : isOldestActive
+                    ? 'border-terracotta shadow-md'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                {/* Compact Card Header: Click to Expand / Collapse */}
+                <div
+                  onClick={() => handleToggleExpand(order.id)}
+                  className="p-3.5 cursor-pointer flex items-center justify-between select-none"
+                >
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    {/* Order Number Badge */}
+                    <span
+                      className={`font-black text-sm px-2.5 py-0.5 rounded-lg text-white ${
+                        isOldestActive ? 'bg-terracotta' : 'bg-navy'
+                      }`}
+                    >
+                      {order.orderNumber}
+                    </span>
+
+                    {/* Oldest Active Indicator */}
+                    {isOldestActive && (
+                      <span className="text-[11px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">
+                        Oldest in Queue
+                      </span>
+                    )}
+
+                    {/* New Order Arrival Indicator */}
+                    {isNew && (
+                      <span className="text-[11px] font-bold bg-terracotta text-white px-2 py-0.5 rounded-md animate-bounce">
+                        NEW ORDER
+                      </span>
+                    )}
+
+                    {/* Relative and Clock Time */}
+                    <div className="flex items-center gap-1 text-xs text-gray-500 font-medium">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>{formatRelativeTime(order.createdAt)}</span>
+                      <span className="text-gray-300">•</span>
+                      <span>{formatClockTime(order.createdAt)}</span>
+                    </div>
+
+                    {/* Customer Name */}
+                    <span className="text-xs text-gray-700 font-semibold">
+                      {order.customerName}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Fulfillment Type Badge */}
+                    <span
+                      className={`text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${
+                        order.fulfillmentType === 'takeaway'
+                          ? 'bg-purple-100 text-purple-800'
+                          : 'bg-blue-100 text-blue-800'
+                      }`}
+                    >
+                      <ShoppingBag className="w-3 h-3" />
+                      {order.fulfillmentType === 'takeaway' ? 'Takeaway' : 'Dine-in'}
+                    </span>
+
+                    {/* Payment Status Badge */}
+                    {isUnpaid ? (
+                      <span className="text-xs font-black px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3 text-amber-600" />
+                        UNPAID
+                      </span>
+                    ) : (
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        Paid
+                      </span>
+                    )}
+
+                    {/* Status Pill */}
+                    <span
+                      className={`text-xs font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                        order.fulfillmentStatus === 'received'
+                          ? 'bg-blue-50 text-blue-700'
+                          : order.fulfillmentStatus === 'preparing'
+                          ? 'bg-amber-50 text-amber-700'
+                          : order.fulfillmentStatus === 'ready'
+                          ? 'bg-teal-50 text-teal-700'
+                          : order.fulfillmentStatus === 'fulfilled'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {order.fulfillmentStatus}
+                    </span>
+
+                    {/* Expand/Collapse Chevron */}
+                    <div className="text-gray-400 p-0.5">
+                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Expanded Card Details */}
+                {isExpanded && (
+                  <div className="px-4 pb-4 pt-2 border-t border-gray-100 bg-gray-50/50">
+                    {/* Customer contact info */}
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-3 pb-2 border-b border-gray-200/60">
+                      <div>
+                        <span>Contact: </span>
+                        <span className="font-semibold text-gray-800">
+                          {order.customerContact || 'Walk-in / None'}
+                        </span>
+                        {order.isGuest && <span className="ml-1.5 text-gray-400">(Guest checkout)</span>}
+                      </div>
+                      <div>
+                        <span>Payment Method: </span>
+                        <span className="font-semibold text-gray-800 uppercase">
+                          {order.paymentMethod === 'counter'
+                            ? 'Pay at Counter'
+                            : order.paymentMethod}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Items List */}
+                    <div className="space-y-2.5 mb-4">
+                      {order.items.map((item, itemIdx) => (
+                        <div
+                          key={item.id || itemIdx}
+                          className="bg-white p-3 rounded-lg border border-gray-200/80 shadow-2xs"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-black text-gray-900 text-sm">
+                                  {item.quantity}x
+                                </span>
+                                <span className="font-bold text-gray-900 text-sm">
+                                  {item.name}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  ({item.chineseName})
+                                </span>
+                                {item.isKidPortion && (
+                                  <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded">
+                                    Kid Portion
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Custom Add-ons */}
+                              {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+                                <div className="mt-1 pl-4 space-y-0.5 text-xs text-gray-600">
+                                  {item.selectedAddOns.map((addon) => (
+                                    <div key={addon.id} className="flex items-center gap-1">
+                                      <span className="text-terracotta font-medium">+</span>
+                                      <span>
+                                        {addon.quantity > 1 ? `${addon.quantity}x ` : ''}
+                                        {addon.name} ({addon.chineseName})
+                                      </span>
+                                      <span className="text-gray-400 font-medium">
+                                        (${addon.price.toFixed(2)})
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Special Instructions */}
+                              {item.specialInstructions && (
+                                <div className="mt-1.5 pl-4 text-xs italic text-amber-800 bg-amber-50/70 p-1 rounded border-l-2 border-amber-400">
+                                  Note: {item.specialInstructions}
+                                </div>
+                              )}
+                            </div>
+
+                            <span className="font-bold text-gray-900 text-sm shrink-0">
+                              ${item.itemTotal.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Financial Summary & Breakdown */}
+                    <div className="bg-white p-3 rounded-lg border border-gray-200/80 mb-4 text-xs space-y-1">
+                      <div className="flex justify-between text-gray-500">
+                        <span>Subtotal</span>
+                        <span>${order.subtotal.toFixed(2)}</span>
+                      </div>
+                      {order.takeawayFee > 0 && (
+                        <div className="flex justify-between text-gray-500">
+                          <span>Takeaway packaging fee</span>
+                          <span>+${order.takeawayFee.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {order.discountAmount > 0 && (
+                        <div className="flex justify-between text-emerald-600 font-medium">
+                          <span>Discount {order.discountDescription ? `(${order.discountDescription})` : ''}</span>
+                          <span>-${order.discountAmount.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center pt-2 border-t font-black text-gray-900 text-base">
+                        <span>Total Payable</span>
+                        <span className="text-lg text-terracotta">${order.total.toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-200">
+                      {/* Kitchen workflow progression buttons */}
+                      <div className="flex items-center gap-1.5">
+                        {order.fulfillmentStatus === 'received' && (
+                          <button
+                            type="button"
+                            onClick={() => handleStatusStep(order.id, 'preparing')}
+                            className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold rounded-lg transition-colors"
+                          >
+                            Mark Preparing
+                          </button>
+                        )}
+                        {order.fulfillmentStatus === 'preparing' && (
+                          <button
+                            type="button"
+                            onClick={() => handleStatusStep(order.id, 'ready')}
+                            className="px-3 py-1.5 bg-teal-100 hover:bg-teal-200 text-teal-800 text-xs font-bold rounded-lg transition-colors"
+                          >
+                            Mark Ready
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Primary fulfillment actions */}
+                      <div className="flex items-center gap-2 ml-auto">
+                        {order.fulfillmentStatus !== 'fulfilled' && order.fulfillmentStatus !== 'archived' && (
+                          <button
+                            type="button"
+                            onClick={() => handleFulfillClick(order)}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
+                          >
+                            {isUnpaid && <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />}
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            {isUnpaid ? 'Collect Payment & Fulfill' : 'Mark Fulfilled'}
+                          </button>
+                        )}
+
+                        {order.fulfillmentStatus === 'fulfilled' && (
+                          <button
+                            type="button"
+                            onClick={() => handleArchiveClick(order.id)}
+                            className="px-4 py-2 bg-gray-700 hover:bg-gray-800 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
+                          >
+                            <Archive className="w-3.5 h-3.5" />
+                            Archive Order
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Safeguard Warning Modal for Unpaid Orders */}
+      {unpaidModalOrder && (
+        <UnpaidWarningModal
+          isOpen={Boolean(unpaidModalOrder)}
+          orderNumber={unpaidModalOrder.orderNumber}
+          totalAmount={unpaidModalOrder.total}
+          onConfirm={() => markOrderFulfilled(unpaidModalOrder.id, true)}
+          onCancel={() => setUnpaidModalOrder(null)}
+        />
+      )}
+    </div>
+  );
+};
