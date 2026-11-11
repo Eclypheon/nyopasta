@@ -291,6 +291,18 @@ async function seedInitialData() {
 }
 
 run().catch((err) => {
-  console.error('\nProvisioning failed:', err);
+  console.error('\nProvisioning failed:', err.message || err);
+  if (err.message && err.message.toLowerCase().includes('region')) {
+    console.error('\n--- 💡 Region Endpoint Guidance ---');
+    console.error('Your Appwrite Cloud project is in a specific geographic region.');
+    console.error('Please pass the matching APPWRITE_ENDPOINT for your project:');
+    console.error('  - Singapore (SGP): APPWRITE_ENDPOINT="https://sgp.cloud.appwrite.io/v1"');
+    console.error('  - Frankfurt (FRA): APPWRITE_ENDPOINT="https://fra.cloud.appwrite.io/v1"');
+    console.error('  - US East (NYC):   APPWRITE_ENDPOINT="https://nyc.cloud.appwrite.io/v1"');
+    console.error('\nYou can verify your exact API Endpoint in the Appwrite Cloud console under:');
+    console.error('  Project Settings -> Overview -> API Endpoint');
+    console.error('\nExample:');
+    console.error('  APPWRITE_ENDPOINT="https://sgp.cloud.appwrite.io/v1" APPWRITE_PROJECT_ID="..." APPWRITE_API_KEY="..." npm run provision:backend\n');
+  }
   process.exit(1);
 });

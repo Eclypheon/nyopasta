@@ -13,11 +13,13 @@ import {
   DEFAULT_STORE_SETTINGS,
 } from '../constants/index.js';
 
-const APPWRITE_ENDPOINT = (typeof window !== 'undefined' && (window as any)._env_?.VITE_APPWRITE_ENDPOINT) ||
+const APPWRITE_ENDPOINT = (typeof window !== 'undefined' && localStorage.getItem('nyo_appwrite_endpoint')) ||
+  (typeof window !== 'undefined' && (window as any)._env_?.VITE_APPWRITE_ENDPOINT) ||
   (import.meta as any)?.env?.VITE_APPWRITE_ENDPOINT ||
   'https://cloud.appwrite.io/v1';
 
-const APPWRITE_PROJECT_ID = (typeof window !== 'undefined' && (window as any)._env_?.VITE_APPWRITE_PROJECT_ID) ||
+const APPWRITE_PROJECT_ID = (typeof window !== 'undefined' && localStorage.getItem('nyo_appwrite_project_id')) ||
+  (typeof window !== 'undefined' && (window as any)._env_?.VITE_APPWRITE_PROJECT_ID) ||
   (import.meta as any)?.env?.VITE_APPWRITE_PROJECT_ID ||
   '';
 

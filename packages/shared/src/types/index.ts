@@ -142,6 +142,8 @@ export interface StoreSettings {
   schedule: DaySchedule[];
   payNowUen: string;
   payNowRecipientName: string;
+  payNowMobile?: string;
+  payNowQrUrl?: string;
   takeawayFeePerItem: number;
   updatedAt: string;
 }
