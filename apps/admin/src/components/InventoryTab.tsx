@@ -53,10 +53,8 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
         bannerMessage: 'Notice: NYO Pasta is closed for the day. Online ordering is paused.',
       });
 
-      // 2. Mark all items sold out
-      await Promise.all(
-        menuItems.map((item) => api.updateMenuItemSoldOut(item.id, true))
-      );
+      // 2. Mark all items sold out atomically
+      await api.setAllMenuItemsSoldOut(true);
 
       onSettingsUpdated?.();
       onMenuUpdated?.();
@@ -83,10 +81,8 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
         bannerMessage: '',
       });
 
-      // 2. Restore all items to in-stock
-      await Promise.all(
-        menuItems.map((item) => api.updateMenuItemSoldOut(item.id, false))
-      );
+      // 2. Restore all items to in-stock atomically
+      await api.setAllMenuItemsSoldOut(false);
 
       onSettingsUpdated?.();
       onMenuUpdated?.();

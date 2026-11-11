@@ -48,6 +48,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
     liveMenuItems,
     isStoreOpen,
     storeClosedReason,
+    storeSettings,
   } = useCart();
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('paynow');
@@ -465,7 +466,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
 
                 {fulfillmentType === 'takeaway' && (
                   <div className="flex justify-between text-navy/70">
-                    <span>Takeaway Packaging Fee (${(0.3).toFixed(2)} x {totalItemCount})</span>
+                    <span>Takeaway Packaging Fee (${(storeSettings.takeawayFeePerItem ?? 0.3).toFixed(2)} x {totalItemCount})</span>
                     <span>+${takeawayFee.toFixed(2)}</span>
                   </div>
                 )}

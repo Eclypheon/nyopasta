@@ -13,6 +13,7 @@ import {
   ShoppingBag,
   Utensils,
   Sparkles,
+  Trash2,
 } from 'lucide-react';
 import { playOrderChime, unlockAudioContext } from '../utils/audio';
 import { UnpaidWarningModal } from './UnpaidWarningModal';
@@ -167,20 +168,36 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
     }
   };
 
+  const handleClearOrders = async () => {
+    if (orders.length === 0) return;
+    const ok = window.confirm('Are you sure you want to clear all kitchen orders?');
+    if (!ok) return;
+    try {
+      await api.clearOrders();
+      onOrderUpdated?.();
+    } catch (err) {
+      console.error('Failed to clear orders:', err);
+    }
+  };
+
   // Helper to create a test order if kitchen queue is empty
   const handleCreateTestOrder = async () => {
     unlockAudioContext();
     try {
       const randomIsPaid = Math.random() > 0.5;
+      const isTakeaway = Math.random() > 0.5;
+      const takeawayFee = isTakeaway ? 0.3 : 0;
+      const subtotal = 10.5;
+      const total = subtotal + takeawayFee;
       await api.createOrder({
         customerName: 'Customer ' + Math.floor(100 + Math.random() * 900),
         customerContact: '9' + Math.floor(1000000 + Math.random() * 9000000),
         isGuest: true,
-        fulfillmentType: Math.random() > 0.5 ? 'dine_in' : 'takeaway',
-        takeawayFee: 0.3,
-        subtotal: 10.5,
+        fulfillmentType: isTakeaway ? 'takeaway' : 'dine_in',
+        takeawayFee,
+        subtotal,
         discountAmount: 0,
-        total: 10.8,
+        total,
         paymentMethod: randomIsPaid ? 'paynow' : 'counter',
         paymentStatus: randomIsPaid ? 'paid' : 'unpaid',
         fulfillmentStatus: 'received',
@@ -319,6 +336,18 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
             <PlusCircle className="w-3.5 h-3.5" />
             + Test Order
           </button>
+
+          {/* Clear orders button */}
+          {orders.length > 0 && (
+            <button
+              onClick={handleClearOrders}
+              title="Clear all kitchen orders"
+              className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 hover:text-red-600 hover:bg-red-50 border border-gray-300 transition-all flex items-center gap-1"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Clear Queue
+            </button>
+          )}
         </div>
       </div>
 

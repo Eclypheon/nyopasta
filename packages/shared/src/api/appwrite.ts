@@ -75,6 +75,12 @@ class LocalReactiveStore {
           const parsed = JSON.parse(savedProfiles);
           this.profiles = new Map(Object.entries(parsed));
         }
+
+        if (this.profiles.size === 0) {
+          this.getProfile('user_alex_7729');
+          this.getProfile('usr_tan_ah_kow');
+          this.getProfile('usr_emily_lim');
+        }
       } catch (e) {
         console.warn('Could not parse local store state', e);
       }
@@ -144,6 +150,12 @@ class LocalReactiveStore {
     return { ...this.storeSettings };
   }
 
+  clearOrders(): void {
+    this.orders = [];
+    this.save();
+    this.notifyOrders();
+  }
+
   getOrders(): Order[] {
     return [...this.orders].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }
@@ -195,13 +207,20 @@ class LocalReactiveStore {
   getProfile(userId: string): UserProfile {
     if (!this.profiles.has(userId)) {
       const isAlex = userId === 'user_alex_7729';
+      const isTan = userId === 'usr_tan_ah_kow';
+      const isEmily = userId === 'usr_emily_lim';
+      const name = isAlex ? 'Alex Tan' : isTan ? 'Tan Ah Kow' : isEmily ? 'Emily Lim' : 'Loyal Customer';
+      const phone = isAlex ? '91234567' : isTan ? '91234567' : isEmily ? '98765432' : undefined;
+      const currentStampCount = isAlex ? 5 : isTan ? 5 : isEmily ? 10 : 0;
+      const totalOrdersCount = isAlex ? 2 : isTan ? 3 : isEmily ? 6 : 0;
+
       const newProfile: UserProfile = {
         id: `prof_${userId}`,
         authUserId: userId,
-        name: isAlex ? 'Alex Tan' : 'Loyal Customer',
-        phone: isAlex ? '91234567' : undefined,
+        name,
+        phone,
         role: 'customer',
-        currentStampCount: isAlex ? 5 : 0,
+        currentStampCount,
         completedCardsCount: 0,
         milestoneRedemptions: { stamp4: false, stamp8: false, stamp12: false },
         stampHistory: isAlex
@@ -223,8 +242,30 @@ class LocalReactiveStore {
                 timestamp: new Date(Date.now() - 86400000).toISOString(),
               },
             ]
+          : isEmily
+          ? [
+              {
+                id: 'evt_init_emily',
+                type: 'manual_migration',
+                stamps: 10,
+                balanceAfter: 10,
+                description: 'Migrated 10 stamps from physical card',
+                timestamp: new Date(Date.now() - 86400000 * 2).toISOString(),
+              },
+            ]
           : [],
-        totalOrdersCount: isAlex ? 2 : 0,
+        totalOrdersCount,
+        lastOrderId: isAlex ? 'NYO-005' : isTan ? 'NYO-002' : isEmily ? 'NYO-004' : undefined,
+        lastOrderSummary: isAlex
+          ? '2x Prawn Cream Pasta'
+          : isTan
+          ? '1x Prawn Cream Pasta, 1x Carbonara'
+          : isEmily
+          ? '1x Burrata Pasta, 1x Truffle Fries'
+          : undefined,
+        lastOrderDate: isAlex
+          ? new Date(Date.now() - 86400000).toISOString()
+          : new Date(Date.now() - 86400000 * 2).toISOString(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -388,6 +429,21 @@ export const api = {
     } catch (err) {
       console.warn('Appwrite updateMenuItemSoldOut failed, falling back:', err);
       return localStore.updateMenuItemSoldOut(id, isSoldOut);
+    }
+  },
+
+  async setAllMenuItemsSoldOut(isSoldOut: boolean): Promise<void> {
+    if (!isCloudConnected) {
+      localStore.setAllSoldOut(isSoldOut);
+      return;
+    }
+    try {
+      const items = await this.getMenuItems();
+      await Promise.all(
+        items.map((item) => databases.updateDocument(DB_ID, 'menu_items', item.id, { isSoldOut }))
+      );
+    } catch {
+      localStore.setAllSoldOut(isSoldOut);
     }
   },
 
@@ -565,6 +621,19 @@ export const api = {
     } catch (err) {
       console.warn('Appwrite updateOrderStatus failed, falling back:', err);
       return localStore.updateOrderStatus(orderId, updates);
+    }
+  },
+
+  async clearOrders(): Promise<void> {
+    if (!isCloudConnected) {
+      localStore.clearOrders();
+      return;
+    }
+    try {
+      const orders = await this.getOrders();
+      await Promise.all(orders.map((o) => databases.deleteDocument(DB_ID, 'orders', o.id)));
+    } catch {
+      localStore.clearOrders();
     }
   },
 

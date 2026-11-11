@@ -46,7 +46,7 @@ const portalHtml = `<!DOCTYPE html>
   <title>NYO Pasta Apps Portal</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: #FAF4E8; color: #172554; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px; }
+    body { background-color: #FAF4E8; color: #172554; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px; touch-action: pan-y; overflow-x: hidden; -webkit-user-select: none; user-select: none; }
     .card { background: white; border-radius: 24px; padding: 32px 24px; max-width: 440px; width: 100%; box-shadow: 0 10px 25px -5px rgba(226, 88, 62, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05); text-align: center; border: 1px solid #EFE7D5; }
     .logo { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; border: 3px solid #E2583E; margin: 0 auto 16px; display: block; }
     h1 { font-size: 24px; font-weight: 800; color: #E2583E; letter-spacing: -0.5px; margin-bottom: 4px; }

@@ -23,36 +23,7 @@ export function CustomersTab({ onSelectCustomerForCredit }: CustomersTabProps) {
     setIsLoading(true);
     try {
       const all = await api.getAllProfiles();
-      if (all && all.length > 0) {
-        setProfiles(all);
-      } else {
-        // Starter sample profiles if none exist
-        const sample1 = await api.getUserProfile('usr_tan_ah_kow');
-        await api.updateUserStamps('usr_tan_ah_kow', 5, {
-          type: 'order',
-          description: 'Purchased 2 Mains',
-          stamps: 2,
-        });
-        sample1.name = 'Tan Ah Kow';
-        sample1.phone = '91234567';
-        sample1.lastOrderSummary = '1x Prawn Cream Pasta, 1x Carbonara';
-        sample1.lastOrderDate = new Date(Date.now() - 3600000 * 24).toISOString();
-        sample1.totalOrdersCount = 3;
-
-        const sample2 = await api.getUserProfile('usr_emily_lim');
-        await api.updateUserStamps('usr_emily_lim', 10, {
-          type: 'manual_migration',
-          description: 'Physical card transfer',
-          stamps: 8,
-        });
-        sample2.name = 'Emily Lim';
-        sample2.phone = '98765432';
-        sample2.lastOrderSummary = '1x Burrata Pasta, 1x Truffle Fries';
-        sample2.lastOrderDate = new Date(Date.now() - 3600000 * 3).toISOString();
-        sample2.totalOrdersCount = 6;
-
-        setProfiles([sample1, sample2]);
-      }
+      setProfiles(all || []);
     } catch (err) {
       console.warn('Error loading customer profiles:', err);
     } finally {

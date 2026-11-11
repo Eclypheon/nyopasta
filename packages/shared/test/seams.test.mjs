@@ -218,4 +218,37 @@ describe('Seam 5: Inventory Sold-Out Synchronisation', () => {
     assert.equal(reverted.isSoldOut, false);
     unsub();
   });
+
+  it('sets all menu items sold out atomically and restores them', () => {
+    localStore.setAllSoldOut(true);
+    const allSoldOut = localStore.getMenuItems().every((i) => i.isSoldOut === true);
+    assert.equal(allSoldOut, true);
+
+    localStore.setAllSoldOut(false);
+    const allAvailable = localStore.getMenuItems().every((i) => i.isSoldOut === false);
+    assert.equal(allAvailable, true);
+  });
+
+  it('clears all orders from the kitchen queue', () => {
+    localStore.createOrder({
+      customerName: 'Test Customer',
+      customerContact: '91234567',
+      isGuest: true,
+      items: [],
+      fulfillmentType: 'dine_in',
+      takeawayFee: 0,
+      subtotal: 10,
+      discountAmount: 0,
+      total: 10,
+      paymentMethod: 'counter',
+      paymentStatus: 'unpaid',
+      fulfillmentStatus: 'received',
+      mainsCount: 0,
+      stampsEarned: 0,
+    });
+    assert.ok(localStore.getOrders().length > 0);
+
+    localStore.clearOrders();
+    assert.equal(localStore.getOrders().length, 0);
+  });
 });
