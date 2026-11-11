@@ -220,6 +220,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile(serverProfile);
       }
     });
+
+    // Load customer past orders from cloud
+    api.getCustomerOrders(currentUser.id).then((custOrders) => {
+      if (custOrders && custOrders.length > 0) {
+        setOrders(custOrders);
+        setLastOrder(custOrders[0]);
+      }
+    }).catch(() => {});
+
     return () => unsub();
   }, [isGuest, currentUser?.id]);
 
@@ -227,6 +236,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const unsub = api.subscribeToOrders((allOrders) => {
       setOrders((prev) => {
+        if (currentUser?.id) {
+          const userOrders = allOrders.filter((o) => o.customerId === currentUser.id);
+          if (userOrders.length > 0) {
+            setLastOrder(userOrders[userOrders.length - 1]);
+            return userOrders.reverse();
+          }
+        }
         if (prev.length === 0) return prev;
         let changed = false;
         const updated = prev.map((localOrder) => {
@@ -250,7 +266,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     });
     return () => unsub();
-  }, []);
+  }, [currentUser?.id]);
 
   const loginAsGuest = () => {
     const guestUser = api.loginAsGuest();
@@ -501,7 +517,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       discountDescription,
       total,
       paymentMethod,
-      paymentStatus: paymentMethod === 'counter' ? ('unpaid' as const) : ('paid' as const),
+      paymentStatus: (paymentMethod === 'counter' || paymentMethod === 'paynow') ? ('unpaid' as const) : ('paid' as const),
       fulfillmentStatus: 'received' as const,
       mainsCount,
       stampsEarned,

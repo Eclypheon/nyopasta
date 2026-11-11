@@ -20,9 +20,13 @@ import { InventoryTab } from './components/InventoryTab';
 import { SettingsTab } from './components/SettingsTab';
 import { ScannerTab } from './components/ScannerTab';
 import { CustomersTab } from './components/CustomersTab';
+import { AdminLogin } from './components/AdminLogin';
 import { unlockAudioContext } from './utils/audio';
 
 export default function App() {
+  const [adminUser, setAdminUser] = useState<string | null>(() => {
+    return typeof window !== 'undefined' ? localStorage.getItem('nyo_admin_auth') : null;
+  });
   const [activeTab, setActiveTab] = useState<'orders' | 'inventory' | 'scanner' | 'customers' | 'settings'>('orders');
   const [menuItems, setMenuItems] = useState<MenuItem[]>(INITIAL_MENU_ITEMS);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -56,6 +60,13 @@ export default function App() {
       setStoreSettings(settings);
     });
 
+    // 3. Heartbeat polling: poll orders every 3.5s for bulletproof delivery
+    const pollInterval = setInterval(() => {
+      api.getOrders().then((latestOrders) => {
+        if (latestOrders) setOrders(latestOrders);
+      }).catch(() => {});
+    }, 3500);
+
     // Unlock Web Audio context on any first touch or click
     const handleFirstInteraction = () => {
       unlockAudioContext();
@@ -69,10 +80,18 @@ export default function App() {
       unsubMenu();
       unsubOrders();
       unsubSettings();
+      clearInterval(pollInterval);
       window.removeEventListener('click', handleFirstInteraction);
       window.removeEventListener('touchstart', handleFirstInteraction);
     };
   }, []);
+
+  const handleLogout = () => {
+    if (window.confirm('Log out from kitchen admin?')) {
+      localStorage.removeItem('nyo_admin_auth');
+      setAdminUser(null);
+    }
+  };
 
   const refreshMenu = useCallback(async () => {
     const items = await api.getMenuItems();
@@ -116,11 +135,17 @@ export default function App() {
     }
   };
 
+  if (!adminUser) {
+    return <AdminLogin onLoginSuccess={(u) => setAdminUser(u)} />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col pb-20">
       {/* Top Header */}
       <Header
         storeSettings={storeSettings}
+        adminUser={adminUser}
+        onLogout={handleLogout}
         onQuickToggleShop={handleQuickToggleShop}
       />
 

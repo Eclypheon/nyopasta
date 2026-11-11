@@ -1,14 +1,18 @@
 import React from 'react';
 import { StoreSettings, forceResetPwaCache } from '@nyopasta/shared';
-import { Power, RefreshCw, Sparkles } from 'lucide-react';
+import { Power, RefreshCw, Sparkles, LogOut, User } from 'lucide-react';
 
 interface HeaderProps {
   storeSettings: StoreSettings;
+  adminUser?: string;
+  onLogout?: () => void;
   onQuickToggleShop?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   storeSettings,
+  adminUser,
+  onLogout,
   onQuickToggleShop,
 }) => {
   const isClosed = storeSettings.isManuallyClosed;
@@ -84,6 +88,19 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <RefreshCw className="w-4 h-4" />
         </button>
+
+        {/* Staff User & Logout */}
+        {adminUser && onLogout && (
+          <button
+            type="button"
+            onClick={onLogout}
+            title={`Logged in as ${adminUser}. Click to logout.`}
+            className="p-1.5 text-gray-300 hover:text-red-300 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 transition-colors flex items-center gap-1"
+            aria-label="Logout"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </header>
   );

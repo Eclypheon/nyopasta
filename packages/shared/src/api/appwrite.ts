@@ -16,12 +16,12 @@ import {
 const APPWRITE_ENDPOINT = (typeof window !== 'undefined' && localStorage.getItem('nyo_appwrite_endpoint')) ||
   (typeof window !== 'undefined' && (window as any)._env_?.VITE_APPWRITE_ENDPOINT) ||
   (import.meta as any)?.env?.VITE_APPWRITE_ENDPOINT ||
-  'https://cloud.appwrite.io/v1';
+  'https://sgp.cloud.appwrite.io/v1';
 
 const APPWRITE_PROJECT_ID = (typeof window !== 'undefined' && localStorage.getItem('nyo_appwrite_project_id')) ||
   (typeof window !== 'undefined' && (window as any)._env_?.VITE_APPWRITE_PROJECT_ID) ||
   (import.meta as any)?.env?.VITE_APPWRITE_PROJECT_ID ||
-  '';
+  '6af42048001529dd4360';
 
 export const isCloudConnected = Boolean(APPWRITE_PROJECT_ID && APPWRITE_PROJECT_ID.trim().length > 0);
 
@@ -490,6 +490,45 @@ export const api = {
     }
   },
 
+  async getCustomerOrders(customerId: string): Promise<Order[]> {
+    if (!isCloudConnected) {
+      return localStore.getOrders().filter((o) => o.customerId === customerId);
+    }
+    try {
+      const res = await databases.listDocuments(DB_ID, 'orders', [
+        Query.equal('customerId', customerId),
+        Query.orderDesc('$createdAt'),
+        Query.limit(50),
+      ]);
+      return res.documents.map((doc: any) => ({
+        id: doc.$id,
+        orderNumber: doc.orderNumber,
+        customerId: doc.customerId,
+        customerName: doc.customerName,
+        customerContact: doc.customerContact,
+        isGuest: doc.isGuest,
+        items: JSON.parse(doc.itemsJson),
+        fulfillmentType: doc.fulfillmentType,
+        takeawayFee: doc.takeawayFee,
+        subtotal: doc.subtotal,
+        discountAmount: doc.discountAmount,
+        discountDescription: doc.discountDescription,
+        total: doc.total,
+        paymentMethod: doc.paymentMethod,
+        paymentStatus: doc.paymentStatus,
+        fulfillmentStatus: doc.fulfillmentStatus,
+        mainsCount: doc.mainsCount,
+        stampsEarned: doc.stampsEarned,
+        redeemedMilestone: doc.redeemedMilestone,
+        createdAt: doc.$createdAt,
+        updatedAt: doc.$updatedAt,
+      }));
+    } catch (err) {
+      console.warn('Appwrite getCustomerOrders failed:', err);
+      return localStore.getOrders().filter((o) => o.customerId === customerId);
+    }
+  },
+
   async createOrder(orderData: Omit<Order, 'id' | 'orderNumber' | 'createdAt' | 'updatedAt'>): Promise<Order> {
     if (!isCloudConnected) return localStore.createOrder(orderData);
     try {
@@ -514,6 +553,23 @@ export const api = {
         stampsEarned: orderData.stampsEarned,
         redeemedMilestone: orderData.redeemedMilestone || null,
       });
+
+      // Update customer profile analytics on cloud DB
+      if (orderData.customerId) {
+        try {
+          const profile = await this.getUserProfile(orderData.customerId);
+          const itemsSummary = orderData.items.map((i) => `${i.quantity}x ${i.name}`).join(', ');
+          const now = new Date().toISOString();
+          await databases.updateDocument(DB_ID, 'profiles', profile.id, {
+            totalOrdersCount: (profile.totalOrdersCount || 0) + 1,
+            lastOrderId: orderNumber,
+            lastOrderSummary: itemsSummary,
+            lastOrderDate: now,
+          });
+        } catch (profileUpdateErr) {
+          console.warn('Could not update customer profile analytics on order creation:', profileUpdateErr);
+        }
+      }
 
       return {
         id: doc.$id,
