@@ -227,9 +227,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           setCurrentUser(user);
           setIsGuest(false);
+          setIsAuthModalOpen(false);
           setCustomerName(user.name);
           if (user.phone) setCustomerContact(user.phone);
-          api.getUserProfile(user.id).then(setProfile).catch(() => {});
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('nyo_auth_user', JSON.stringify(user));
+            localStorage.removeItem('nyo_guest_mode');
+          }
+          api.getUserProfile(user.id, user.name, user.email).then(setProfile).catch(() => {});
         }
       }
     });

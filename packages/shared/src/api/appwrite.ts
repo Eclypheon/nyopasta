@@ -212,12 +212,13 @@ class LocalReactiveStore {
     return this.orders[idx];
   }
 
-  getProfile(userId: string): UserProfile {
+  getProfile(userId: string, defaultName?: string, defaultEmail?: string): UserProfile {
     if (!this.profiles.has(userId)) {
       const newProfile: UserProfile = {
         id: `prof_${userId}`,
         authUserId: userId,
-        name: 'Member',
+        name: defaultName || 'Member',
+        email: defaultEmail || '',
         role: 'customer',
         currentStampCount: 0,
         completedCardsCount: 0,
@@ -236,6 +237,8 @@ class LocalReactiveStore {
       this.save();
     }
     const prof = this.profiles.get(userId)!;
+    if (defaultName && prof.name === 'Member') prof.name = defaultName;
+    if (defaultEmail && !prof.email) prof.email = defaultEmail;
     if (prof.voucherSide350Count === undefined) prof.voucherSide350Count = 0;
     if (prof.voucherSide450Count === undefined) prof.voucherSide450Count = 0;
     if (prof.voucherMeal850Count === undefined) prof.voucherMeal850Count = 0;
@@ -745,8 +748,8 @@ export const api = {
     }
   },
 
-  async getUserProfile(userId: string): Promise<UserProfile> {
-    if (!isCloudConnected) return localStore.getProfile(userId);
+  async getUserProfile(userId: string, defaultName?: string, defaultEmail?: string): Promise<UserProfile> {
+    if (!isCloudConnected) return localStore.getProfile(userId, defaultName, defaultEmail);
     try {
       const res = await databases.listDocuments(DB_ID, 'profiles', [Query.equal('userId', userId)]);
       if (res.documents.length === 0) {
@@ -763,7 +766,8 @@ export const api = {
         };
         const doc: any = await databases.createDocument(DB_ID, 'profiles', ID.unique(), {
           userId,
-          name: 'Member',
+          name: defaultName || 'Member',
+          email: defaultEmail || '',
           role: 'customer',
           currentStampCount: 0,
           completedCardsCount: 0,
@@ -1105,6 +1109,10 @@ export const api = {
 
   // --- Auth Methods ---
   async loginWithGoogle(): Promise<void> {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('nyo_guest_mode');
+    }
+
     if (!isCloudConnected) {
       const mockUser: AuthUser = {
         id: `google_${Date.now().toString().slice(-6)}`,
@@ -1113,9 +1121,8 @@ export const api = {
       };
       if (typeof window !== 'undefined') {
         localStorage.setItem('nyo_auth_user', JSON.stringify(mockUser));
-        localStorage.removeItem('nyo_guest_mode');
       }
-      localStore.getProfile(mockUser.id);
+      localStore.getProfile(mockUser.id, mockUser.name, mockUser.email);
       return;
     }
 
@@ -1222,33 +1229,38 @@ export const api = {
   },
 
   async getCurrentUser(): Promise<AuthUser | null> {
+    if (isCloudConnected) {
+      try {
+        const acc = await account.get();
+        const user: AuthUser = {
+          id: acc.$id,
+          name: acc.name,
+          email: acc.email,
+          phone: acc.phone,
+        };
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('nyo_guest_mode');
+          localStorage.setItem('nyo_auth_user', JSON.stringify(user));
+        }
+        return user;
+      } catch {
+        // No active cloud session
+      }
+    }
+
     if (typeof window !== 'undefined' && localStorage.getItem('nyo_guest_mode') === 'true') {
       return { id: 'guest', name: 'Guest Customer', isGuest: true };
     }
 
-    if (!isCloudConnected) {
-      if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem('nyo_auth_user');
-        if (saved) {
-          try {
-            return JSON.parse(saved);
-          } catch {}
-        }
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('nyo_auth_user');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {}
       }
-      return null;
     }
-
-    try {
-      const acc = await account.get();
-      return {
-        id: acc.$id,
-        name: acc.name,
-        email: acc.email,
-        phone: acc.phone,
-      };
-    } catch {
-      return null;
-    }
+    return null;
   },
 
   async logout(): Promise<void> {
