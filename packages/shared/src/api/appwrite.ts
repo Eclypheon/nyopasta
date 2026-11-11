@@ -45,6 +45,7 @@ class LocalReactiveStore {
   private menuListeners: Set<(items: MenuItem[]) => void> = new Set();
   private orderListeners: Set<(orders: Order[]) => void> = new Set();
   private settingsListeners: Set<(settings: StoreSettings) => void> = new Set();
+  private profileListeners: Map<string, Set<(profile: UserProfile) => void>> = new Map();
 
   constructor() {
     // Load persisted mock state if available
@@ -89,6 +90,12 @@ class LocalReactiveStore {
         } else if (event.key === 'nyo_local_settings' && event.newValue) {
           this.storeSettings = JSON.parse(event.newValue);
           this.notifySettings();
+        } else if (event.key === 'nyo_local_profiles' && event.newValue) {
+          try {
+            const parsed = JSON.parse(event.newValue);
+            this.profiles = new Map(Object.entries(parsed));
+            this.notifyProfiles();
+          } catch {}
         }
       });
     }
@@ -153,6 +160,20 @@ class LocalReactiveStore {
       updatedAt: now,
     };
     this.orders.push(newOrder);
+
+    // Update customer analytics profile if registered
+    if (orderData.customerId) {
+      const prof = this.getProfile(orderData.customerId);
+      const itemsSummary = orderData.items.map((i) => `${i.quantity}x ${i.name}`).join(', ');
+      prof.totalOrdersCount = (prof.totalOrdersCount || 0) + 1;
+      prof.lastOrderId = orderNumber;
+      prof.lastOrderSummary = itemsSummary;
+      prof.lastOrderDate = now;
+      prof.updatedAt = now;
+      this.profiles.set(orderData.customerId, prof);
+      this.notifyProfiles(orderData.customerId);
+    }
+
     this.save();
     this.notifyOrders();
     return newOrder;
@@ -173,16 +194,37 @@ class LocalReactiveStore {
 
   getProfile(userId: string): UserProfile {
     if (!this.profiles.has(userId)) {
+      const isAlex = userId === 'user_alex_7729';
       const newProfile: UserProfile = {
         id: `prof_${userId}`,
         authUserId: userId,
-        name: 'Loyal Customer',
+        name: isAlex ? 'Alex Tan' : 'Loyal Customer',
+        phone: isAlex ? '91234567' : undefined,
         role: 'customer',
-        currentStampCount: 0,
+        currentStampCount: isAlex ? 5 : 0,
         completedCardsCount: 0,
         milestoneRedemptions: { stamp4: false, stamp8: false, stamp12: false },
-        stampHistory: [],
-        totalOrdersCount: 0,
+        stampHistory: isAlex
+          ? [
+              {
+                id: 'evt_init_1',
+                type: 'order',
+                stamps: 3,
+                balanceAfter: 3,
+                description: 'Purchased 3 mains (Order NYO-001)',
+                timestamp: new Date(Date.now() - 86400000 * 3).toISOString(),
+              },
+              {
+                id: 'evt_init_2',
+                type: 'order',
+                stamps: 2,
+                balanceAfter: 5,
+                description: 'Purchased 2 mains (Order NYO-005)',
+                timestamp: new Date(Date.now() - 86400000).toISOString(),
+              },
+            ]
+          : [],
+        totalOrdersCount: isAlex ? 2 : 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -218,7 +260,7 @@ class LocalReactiveStore {
     // Rollover check if reaches 12 and completed
     if (finalStamps >= 12 && updatedMilestones.stamp12) {
       completedCards += 1;
-      finalStamps = 0;
+      finalStamps = Math.max(0, finalStamps - 12);
       updatedMilestones = { stamp4: false, stamp8: false, stamp12: false };
     }
 
@@ -233,7 +275,32 @@ class LocalReactiveStore {
 
     this.profiles.set(userId, updatedProfile);
     this.save();
+    this.notifyProfiles(userId);
     return updatedProfile;
+  }
+
+  onProfileChange(userId: string, fn: (profile: UserProfile) => void): () => void {
+    if (!this.profileListeners.has(userId)) {
+      this.profileListeners.set(userId, new Set());
+    }
+    this.profileListeners.get(userId)!.add(fn);
+    fn(this.getProfile(userId));
+    return () => {
+      this.profileListeners.get(userId)?.delete(fn);
+    };
+  }
+
+  private notifyProfiles(userId?: string) {
+    if (userId) {
+      const p = this.getProfile(userId);
+      const set = this.profileListeners.get(userId);
+      if (set) set.forEach((fn) => fn(p));
+    } else {
+      this.profileListeners.forEach((set, uid) => {
+        const p = this.getProfile(uid);
+        set.forEach((fn) => fn(p));
+      });
+    }
   }
 
   onMenuChange(fn: (items: MenuItem[]) => void): () => void {
@@ -605,7 +672,7 @@ export const api = {
 
       if (finalStamps >= 12 && updatedMilestones.stamp12) {
         completedCards += 1;
-        finalStamps = 0;
+        finalStamps = Math.max(0, finalStamps - 12);
         updatedMilestones = { stamp4: false, stamp8: false, stamp12: false };
       }
 
@@ -671,6 +738,18 @@ export const api = {
       });
     } catch (e) {
       return localStore.onSettingsChange(callback);
+    }
+  },
+
+  subscribeToProfile(userId: string, callback: (profile: UserProfile) => void): () => void {
+    if (!isCloudConnected) return localStore.onProfileChange(userId, callback);
+    try {
+      this.getUserProfile(userId).then(callback);
+      return appwriteClient.subscribe(`databases.${DB_ID}.collections.profiles.documents`, () => {
+        this.getUserProfile(userId).then(callback);
+      });
+    } catch (e) {
+      return localStore.onProfileChange(userId, callback);
     }
   },
 };

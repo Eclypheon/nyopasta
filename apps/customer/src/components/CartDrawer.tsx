@@ -45,6 +45,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
     lastOrder,
     reorderOrder,
     placeOrder,
+    liveMenuItems,
+    isStoreOpen,
+    storeClosedReason,
   } = useCart();
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('paynow');
@@ -52,6 +55,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const hasSoldOutItems = items.some(
+    (item) => liveMenuItems.find((m) => m.id === item.menuItemId)?.isSoldOut
+  );
 
   // Available rewards to claim if member
   const canClaim4 = !isGuest && profile.currentStampCount >= 4 && !profile.milestoneRedemptions.stamp4;
@@ -61,6 +68,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
 
   const handleCheckout = async () => {
     if (items.length === 0) return;
+    if (!isStoreOpen) {
+      setErrorMsg(storeClosedReason || 'The shop is currently closed. Ordering is temporarily paused.');
+      return;
+    }
+    if (hasSoldOutItems) {
+      setErrorMsg('Some items in your cart are sold out. Please remove them to proceed.');
+      return;
+    }
     setIsSubmitting(true);
     setErrorMsg(null);
     try {
@@ -185,22 +200,33 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
                 <label className="font-extrabold text-xs text-navy uppercase tracking-wide block">
                   Items ({items.length})
                 </label>
-                {items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="bg-white p-3 rounded-2xl border border-cream-dark shadow-2xs space-y-2"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <h4 className="font-extrabold text-navy text-xs leading-snug">{item.name}</h4>
-                          {item.isKidPortion && (
-                            <span className="text-[10px] bg-terracotta-50 text-terracotta font-bold px-1.5 py-0.5 rounded">
-                              Kid Portion
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-terracotta font-medium">{item.chineseName}</p>
+                {items.map((item) => {
+                  const isItemSoldOut = liveMenuItems.find((m) => m.id === item.menuItemId)?.isSoldOut;
+                  return (
+                    <div
+                      key={item.id}
+                      className={`p-3 rounded-2xl border shadow-2xs space-y-2 transition-colors ${
+                        isItemSoldOut
+                          ? 'bg-red-50/50 border-red-300 ring-1 ring-red-400/30'
+                          : 'bg-white border-cream-dark'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="font-extrabold text-navy text-xs leading-snug">{item.name}</h4>
+                            {isItemSoldOut && (
+                              <span className="text-[10px] bg-red-600 text-white font-black px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse">
+                                Sold Out
+                              </span>
+                            )}
+                            {item.isKidPortion && (
+                              <span className="text-[10px] bg-terracotta-50 text-terracotta font-bold px-1.5 py-0.5 rounded">
+                                Kid Portion
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-[#B03620] font-medium">{item.chineseName}</p>
 
                         {/* Selected Add-ons */}
                         {item.selectedAddOns.length > 0 && (
@@ -253,7 +279,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
                       </div>
                     </div>
                   </div>
-                ))}
+                );
+              })}
               </div>
 
               {/* Loyalty Milestone Reward Selector (if applicable) */}
@@ -469,14 +496,42 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
         {/* Footer Checkout Button */}
         {items.length > 0 && (
           <div className="p-4 bg-white border-t border-cream-dark">
-            <button
-              onClick={handleCheckout}
-              disabled={isSubmitting}
-              className="w-full bg-terracotta hover:bg-terracotta-600 active:scale-[0.98] text-white font-black text-sm py-3.5 px-4 rounded-2xl shadow-md shadow-terracotta/25 flex items-center justify-between transition-all disabled:opacity-50"
-            >
-              <span>{isSubmitting ? 'Placing Order...' : 'Confirm & Place Order'}</span>
-              <span>${total.toFixed(2)}</span>
-            </button>
+            {!isStoreOpen ? (
+              <div className="space-y-2">
+                <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs text-center font-bold">
+                  {storeClosedReason || 'The shop is currently closed. Ordering is temporarily paused.'}
+                </div>
+                <button
+                  type="button"
+                  disabled
+                  className="w-full bg-gray-300 text-gray-500 font-black text-sm py-3.5 px-4 rounded-2xl cursor-not-allowed"
+                >
+                  Shop Closed · Ordering Paused
+                </button>
+              </div>
+            ) : hasSoldOutItems ? (
+              <div className="space-y-2">
+                <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs text-center font-bold">
+                  Some items in your cart are currently sold out. Please remove them to proceed.
+                </div>
+                <button
+                  type="button"
+                  disabled
+                  className="w-full bg-gray-300 text-gray-500 font-black text-sm py-3.5 px-4 rounded-2xl cursor-not-allowed"
+                >
+                  Remove Sold-Out Items to Order
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleCheckout}
+                disabled={isSubmitting}
+                className="w-full bg-terracotta hover:bg-terracotta-600 active:scale-[0.98] text-white font-black text-sm py-3.5 px-4 rounded-2xl shadow-md shadow-terracotta/25 flex items-center justify-between transition-all disabled:opacity-50"
+              >
+                <span>{isSubmitting ? 'Placing Order...' : 'Confirm & Place Order'}</span>
+                <span>${total.toFixed(2)}</span>
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -13,6 +13,10 @@ export function CustomersTab({ onSelectCustomerForCredit }: CustomersTabProps) {
 
   useEffect(() => {
     loadCustomers();
+    const unsubOrders = api.subscribeToOrders(() => {
+      loadCustomers();
+    });
+    return () => unsubOrders();
   }, []);
 
   const loadCustomers = async () => {

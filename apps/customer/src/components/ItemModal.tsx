@@ -44,6 +44,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
   };
 
   const handleAddToCart = () => {
+    if (item.isSoldOut) return;
     const chosenAddOns: SelectedAddOn[] = availableAddons
       .filter((a) => (selectedAddons[a.id] || 0) > 0)
       .map((a) => ({
@@ -365,14 +366,24 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
           </div>
 
           {/* Add to Cart Button */}
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            className="flex-1 bg-terracotta hover:bg-terracotta-600 active:scale-[0.98] text-white font-extrabold text-sm py-3 px-4 rounded-xl shadow-md shadow-terracotta/25 flex items-center justify-between transition-all"
-          >
-            <span>Add to Cart</span>
-            <span>${lineTotal.toFixed(2)}</span>
-          </button>
+          {item.isSoldOut ? (
+            <button
+              type="button"
+              disabled
+              className="flex-1 bg-gray-200 text-gray-500 font-extrabold text-sm py-3 px-4 rounded-xl cursor-not-allowed text-center"
+            >
+              Sold Out 已售罄
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              className="flex-1 bg-terracotta hover:bg-terracotta-600 active:scale-[0.98] text-white font-extrabold text-sm py-3 px-4 rounded-xl shadow-md shadow-terracotta/25 flex items-center justify-between transition-all"
+            >
+              <span>Add to Cart</span>
+              <span>${lineTotal.toFixed(2)}</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

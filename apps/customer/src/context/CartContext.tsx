@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   CartItem,
+  MenuItem,
   Order,
   UserProfile,
   FulfillmentType,
@@ -8,6 +9,7 @@ import {
   StoreSettings,
   DEFAULT_STORE_SETTINGS,
   LOYALTY_MILESTONES,
+  isStoreCurrentlyOpen,
   api,
 } from '@nyopasta/shared';
 
@@ -25,6 +27,9 @@ interface CartContextValue {
   lastOrder: Order | null;
   isCartOpen: boolean;
   storeSettings: StoreSettings;
+  liveMenuItems: MenuItem[];
+  isStoreOpen: boolean;
+  storeClosedReason?: string;
   subtotal: number;
   takeawayFee: number;
   discountAmount: number;
@@ -150,26 +155,57 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsub();
   }, []);
 
-  // Fetch / Sync initial profile from api
+  // Live subscription to menu items
+  const [liveMenuItems, setLiveMenuItems] = useState<MenuItem[]>([]);
   useEffect(() => {
-    let isMounted = true;
-    api.getUserProfile(DEFAULT_USER_ID).then((serverProfile) => {
-      if (!isMounted) return;
-      // If server profile has higher stamps or has data, sync it
-      if (serverProfile) {
-        setProfile((prev) => {
-          // If local has initial demo state with 5 stamps and server is empty 0 stamps, keep local or merge
-          if (serverProfile.currentStampCount === 0 && prev.currentStampCount > 0) {
-            return prev;
-          }
-          return { ...prev, ...serverProfile };
-        });
-      }
-    }).catch(console.warn);
+    const unsub = api.subscribeToMenuItems((items) => {
+      setLiveMenuItems(items);
+    });
+    return () => unsub();
+  }, []);
 
-    return () => {
-      isMounted = false;
-    };
+  const storeStatus = isStoreCurrentlyOpen(storeSettings);
+  const isStoreOpen = storeStatus.isOpen;
+  const storeClosedReason = storeStatus.reason;
+
+  // Live subscription to user profile (stamps, milestones, history)
+  useEffect(() => {
+    if (isGuest) return;
+    const unsub = api.subscribeToProfile(DEFAULT_USER_ID, (serverProfile) => {
+      if (serverProfile) {
+        setProfile(serverProfile);
+      }
+    });
+    return () => unsub();
+  }, [isGuest]);
+
+  // Live subscription to order statuses (received -> preparing -> ready -> fulfilled)
+  useEffect(() => {
+    const unsub = api.subscribeToOrders((allOrders) => {
+      setOrders((prev) => {
+        if (prev.length === 0) return prev;
+        let changed = false;
+        const updated = prev.map((localOrder) => {
+          const matched = allOrders.find((o) => o.id === localOrder.id);
+          if (matched && (matched.fulfillmentStatus !== localOrder.fulfillmentStatus || matched.paymentStatus !== localOrder.paymentStatus)) {
+            changed = true;
+            return matched;
+          }
+          return localOrder;
+        });
+        return changed ? updated : prev;
+      });
+
+      setLastOrder((prev) => {
+        if (!prev) return prev;
+        const matched = allOrders.find((o) => o.id === prev.id);
+        if (matched && (matched.fulfillmentStatus !== prev.fulfillmentStatus || matched.paymentStatus !== prev.paymentStatus)) {
+          return matched;
+        }
+        return prev;
+      });
+    });
+    return () => unsub();
   }, []);
 
   const refreshProfile = async () => {
@@ -247,7 +283,23 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const reorderOrder = (orderToReorder: Order) => {
     if (!orderToReorder.items || orderToReorder.items.length === 0) return;
-    setItems(orderToReorder.items);
+    if (!isStoreOpen) {
+      alert(`Cannot reorder: ${storeClosedReason || 'The shop is currently closed.'}`);
+      return;
+    }
+    // Filter out any currently sold out items
+    const availableItems = orderToReorder.items.filter((item) => {
+      const live = liveMenuItems.find((m) => m.id === item.menuItemId);
+      return live && !live.isSoldOut;
+    });
+    if (availableItems.length === 0) {
+      alert('All items from this past order are currently sold out.');
+      return;
+    }
+    if (availableItems.length < orderToReorder.items.length) {
+      alert('Some items from this past order are currently sold out and were skipped.');
+    }
+    setItems(availableItems);
     setFulfillmentType(orderToReorder.fulfillmentType);
     setAppliedMilestoneReward(null);
     setIsCartOpen(true);
@@ -330,6 +382,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Place order
   const placeOrder = async (paymentMethod: PaymentMethod): Promise<Order> => {
     if (items.length === 0) throw new Error('Cart is empty');
+
+    const currentStatus = isStoreCurrentlyOpen(storeSettings);
+    if (!currentStatus.isOpen) {
+      throw new Error(`Cannot place order: ${currentStatus.reason || 'The shop is currently closed.'}`);
+    }
+
+    const currentMenu = await api.getMenuItems();
+    const soldOutItemInCart = items.find((cartItem) => {
+      const liveItem = currentMenu.find((m) => m.id === cartItem.menuItemId);
+      return liveItem?.isSoldOut;
+    });
+    if (soldOutItemInCart) {
+      throw new Error(`"${soldOutItemInCart.name}" is currently sold out. Please remove it from your cart to proceed.`);
+    }
 
     const mainsCount = items
       .filter((i) => i.category === 'mains')
@@ -417,6 +483,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         lastOrder,
         isCartOpen,
         storeSettings,
+        liveMenuItems,
+        isStoreOpen,
+        storeClosedReason,
         subtotal,
         takeawayFee,
         discountAmount,
