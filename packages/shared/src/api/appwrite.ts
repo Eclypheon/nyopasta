@@ -26,8 +26,16 @@ const APPWRITE_PROJECT_ID = (typeof window !== 'undefined' && localStorage.getIt
 export const isCloudConnected = Boolean(APPWRITE_PROJECT_ID && APPWRITE_PROJECT_ID.trim().length > 0);
 
 export const appwriteClient = new Client();
+export const client = appwriteClient;
 if (isCloudConnected) {
   appwriteClient.setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT_ID);
+  if (typeof window !== 'undefined') {
+    appwriteClient.ping().then((res) => {
+      console.log('Appwrite Cloud connected:', res);
+    }).catch((err) => {
+      console.warn('Appwrite Cloud ping notice:', err);
+    });
+  }
 }
 
 export const account = new Account(appwriteClient);
