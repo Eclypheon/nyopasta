@@ -1126,8 +1126,38 @@ export const api = {
       return;
     }
 
-    const redirectUrl = window.location.href.split('#')[0];
-    account.createOAuth2Session(OAuthProvider.Google, redirectUrl, redirectUrl);
+    const redirectUrl = window.location.href.split('?')[0].split('#')[0];
+    await account.createOAuth2Token(OAuthProvider.Google, redirectUrl, redirectUrl);
+  },
+
+  async handleOAuthCallback(): Promise<AuthUser | null> {
+    if (typeof window === 'undefined' || !isCloudConnected) return null;
+    const url = new URL(window.location.href);
+    const userId = url.searchParams.get('userId');
+    const secret = url.searchParams.get('secret');
+
+    if (userId && secret) {
+      try {
+        await account.createSession(userId, secret);
+        url.searchParams.delete('userId');
+        url.searchParams.delete('secret');
+        window.history.replaceState({}, '', url.toString());
+
+        const acc = await account.get();
+        const user: AuthUser = {
+          id: acc.$id,
+          name: acc.name,
+          email: acc.email,
+          phone: acc.phone,
+        };
+        localStorage.setItem('nyo_auth_user', JSON.stringify(user));
+        localStorage.removeItem('nyo_guest_mode');
+        return user;
+      } catch (err) {
+        console.warn('Appwrite createSession from OAuth token failed:', err);
+      }
+    }
+    return null;
   },
 
   async signupWithEmail(email: string, password: string, name: string, phone?: string): Promise<AuthUser> {

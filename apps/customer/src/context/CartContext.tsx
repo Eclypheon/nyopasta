@@ -217,27 +217,33 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isStoreOpen = storeStatus.isOpen;
   const storeClosedReason = storeStatus.reason;
 
-  // Check current session on mount
+  // Check current session on mount (including OAuth token callback)
   useEffect(() => {
-    api.getCurrentUser().then((user) => {
-      if (user) {
-        if (user.isGuest) {
-          setIsGuest(true);
-          setCurrentUser(user);
-        } else {
-          setCurrentUser(user);
-          setIsGuest(false);
-          setIsAuthModalOpen(false);
-          setCustomerName(user.name);
-          if (user.phone) setCustomerContact(user.phone);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('nyo_auth_user', JSON.stringify(user));
-            localStorage.removeItem('nyo_guest_mode');
+    (async () => {
+      try {
+        const oauthUser = await api.handleOAuthCallback();
+        const user = oauthUser || (await api.getCurrentUser());
+        if (user) {
+          if (user.isGuest) {
+            setIsGuest(true);
+            setCurrentUser(user);
+          } else {
+            setCurrentUser(user);
+            setIsGuest(false);
+            setIsAuthModalOpen(false);
+            setCustomerName(user.name);
+            if (user.phone) setCustomerContact(user.phone);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('nyo_auth_user', JSON.stringify(user));
+              localStorage.removeItem('nyo_guest_mode');
+            }
+            api.getUserProfile(user.id, user.name, user.email).then(setProfile).catch(() => {});
           }
-          api.getUserProfile(user.id, user.name, user.email).then(setProfile).catch(() => {});
         }
+      } catch (err) {
+        console.warn('Session check on mount notice:', err);
       }
-    });
+    })();
   }, []);
 
   // Live subscription to user profile (stamps, milestones, history)
