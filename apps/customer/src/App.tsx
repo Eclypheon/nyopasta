@@ -92,7 +92,7 @@ function CustomerAppContent() {
   const fried = menuItems.filter((i) => i.category === 'sides' && i.subcategory === 'Fried Items');
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col max-w-lg mx-auto shadow-2xl relative text-navy h-screen overflow-hidden">
+    <div className="min-h-screen bg-cream flex flex-col max-w-lg mx-auto shadow-2xl relative text-navy h-[100dvh] overflow-hidden">
       {/* Solid Brand Header (Non-transparent to prevent overlapping bleed) */}
       <Header onOpenCart={() => setIsCartOpen(true)} />
 
@@ -123,7 +123,7 @@ function CustomerAppContent() {
 
             {/* Mains Section */}
             <section id="cat-mains" className="space-y-3 scroll-mt-2">
-              <div className="flex items-center justify-between border-b border-cream-dark pb-1 sticky top-0 bg-cream/95 backdrop-blur-xs py-1 z-10">
+              <div className="flex items-center justify-between border-b border-cream-dark pb-1 sticky top-0 bg-cream py-1 z-10">
                 <div>
                   <h2 className="font-extrabold text-sm text-navy uppercase tracking-wide">Signature Mains 主食</h2>
                   <p className="text-[10px] text-gray-500 font-medium">Every main earns 1 loyalty stamp</p>
@@ -132,7 +132,7 @@ function CustomerAppContent() {
                   {mains.length} dishes
                 </span>
               </div>
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 {mains.map((item) => (
                   <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} />
                 ))}
@@ -141,7 +141,7 @@ function CustomerAppContent() {
 
             {/* Artisanal Soups Section */}
             <section id="cat-soups" className="space-y-3 scroll-mt-2">
-              <div className="flex items-center justify-between border-b border-cream-dark pb-1 sticky top-0 bg-cream/95 backdrop-blur-xs py-1 z-10">
+              <div className="flex items-center justify-between border-b border-cream-dark pb-1 sticky top-0 bg-cream py-1 z-10">
                 <div>
                   <h2 className="font-extrabold text-sm text-navy uppercase tracking-wide">Artisanal Soups 意式浓汤</h2>
                   <p className="text-[10px] text-terracotta font-bold">Make it a set: Add $1 for garlic bread</p>
@@ -150,7 +150,7 @@ function CustomerAppContent() {
                   {soups.length} soups
                 </span>
               </div>
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 {soups.map((item) => (
                   <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} />
                 ))}
@@ -159,7 +159,7 @@ function CustomerAppContent() {
 
             {/* Korean Fried Chicken Section */}
             <section id="cat-kfc" className="space-y-3 scroll-mt-2">
-              <div className="flex items-center justify-between border-b border-cream-dark pb-1 sticky top-0 bg-cream/95 backdrop-blur-xs py-1 z-10">
+              <div className="flex items-center justify-between border-b border-cream-dark pb-1 sticky top-0 bg-cream py-1 z-10">
                 <div>
                   <h2 className="font-extrabold text-sm text-navy uppercase tracking-wide">Korean Fried Chicken 韩式炸鸡</h2>
                   <p className="text-[10px] text-gray-500 font-medium">Crispy whole cuts glazed fresh</p>
@@ -168,7 +168,7 @@ function CustomerAppContent() {
                   {kfc.length} items
                 </span>
               </div>
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 {kfc.map((item) => (
                   <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} />
                 ))}
@@ -177,7 +177,7 @@ function CustomerAppContent() {
 
             {/* Artisanal Breads Section */}
             <section id="cat-breads" className="space-y-3 scroll-mt-2">
-              <div className="flex items-center justify-between border-b border-cream-dark pb-1 sticky top-0 bg-cream/95 backdrop-blur-xs py-1 z-10">
+              <div className="flex items-center justify-between border-b border-cream-dark pb-1 sticky top-0 bg-cream py-1 z-10">
                 <div>
                   <h2 className="font-extrabold text-sm text-navy uppercase tracking-wide">Artisanal Breads 意式面包</h2>
                   <p className="text-[10px] text-gray-500 font-medium">Fresh toasted daily</p>
@@ -186,7 +186,7 @@ function CustomerAppContent() {
                   {breads.length} items
                 </span>
               </div>
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 {breads.map((item) => (
                   <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} />
                 ))}
@@ -195,7 +195,7 @@ function CustomerAppContent() {
 
             {/* Fried Items Section */}
             <section id="cat-fried" className="space-y-3 scroll-mt-2">
-              <div className="flex items-center justify-between border-b border-cream-dark pb-1 sticky top-0 bg-cream/95 backdrop-blur-xs py-1 z-10">
+              <div className="flex items-center justify-between border-b border-cream-dark pb-1 sticky top-0 bg-cream py-1 z-10">
                 <div>
                   <h2 className="font-extrabold text-sm text-navy uppercase tracking-wide">Fried Items 酥炸食品</h2>
                   <p className="text-[10px] text-gray-500 font-medium">Golden shoestring fries & onion rings</p>
@@ -204,7 +204,7 @@ function CustomerAppContent() {
                   {fried.length} items
                 </span>
               </div>
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 {fried.map((item) => (
                   <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} />
                 ))}
@@ -230,7 +230,7 @@ function CustomerAppContent() {
 
       {/* Floating Bottom Cart Bar */}
       {activeTab === 'menu' && totalItemCount > 0 && !isCartOpen && (
-        <div className="fixed bottom-18 left-0 right-0 max-w-lg mx-auto px-4 z-30 pointer-events-none animate-slide-up">
+        <div className="fixed bottom-[74px] left-0 right-0 max-w-lg mx-auto px-4 z-30 pointer-events-none animate-slide-up">
           <button
             type="button"
             onClick={() => setIsCartOpen(true)}
@@ -251,12 +251,12 @@ function CustomerAppContent() {
       )}
 
       {/* Fixed Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white border-t border-cream-dark flex items-center justify-around py-2 z-30 shadow-lg">
+      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white border-t border-cream-dark flex items-center justify-around pt-2 pb-[max(0.6rem,env(safe-area-inset-bottom,0px))] z-30 shadow-lg">
         <button
           type="button"
           onClick={() => setActiveTab('menu')}
           className={`flex flex-col items-center text-xs font-bold transition-colors ${
-            activeTab === 'menu' ? 'text-terracotta' : 'text-gray-400 hover:text-gray-600'
+            activeTab === 'menu' ? 'text-terracotta' : 'text-gray-500 hover:text-navy'
           }`}
         >
           <ShoppingBag className="w-5 h-5 mb-0.5" />
@@ -267,7 +267,7 @@ function CustomerAppContent() {
           type="button"
           onClick={() => setActiveTab('loyalty')}
           className={`flex flex-col items-center text-xs font-bold transition-colors ${
-            activeTab === 'loyalty' ? 'text-terracotta' : 'text-gray-400 hover:text-gray-600'
+            activeTab === 'loyalty' ? 'text-terracotta' : 'text-gray-500 hover:text-navy'
           }`}
         >
           <Award className="w-5 h-5 mb-0.5" />
@@ -278,7 +278,7 @@ function CustomerAppContent() {
           type="button"
           onClick={() => setActiveTab('orders')}
           className={`flex flex-col items-center text-xs font-bold transition-colors ${
-            activeTab === 'orders' ? 'text-terracotta' : 'text-gray-400 hover:text-gray-600'
+            activeTab === 'orders' ? 'text-terracotta' : 'text-gray-500 hover:text-navy'
           }`}
         >
           <Clock className="w-5 h-5 mb-0.5" />

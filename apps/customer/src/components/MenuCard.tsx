@@ -52,7 +52,7 @@ export const MenuCard: React.FC<MenuCardProps> = ({ item, onSelect }) => {
       <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch py-0.5">
         <div>
           <div className="flex items-center gap-1.5 flex-wrap">
-            <h3 className="font-extrabold text-navy text-sm leading-tight truncate">{item.name}</h3>
+            <h3 className="font-extrabold text-navy text-sm leading-tight line-clamp-2">{item.name}</h3>
             {item.tag && (
               <span className="text-[9px] bg-pasta-gold/20 text-amber-900 border border-pasta-gold/40 font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0">
                 <Sparkles className="w-2 h-2 text-amber-700" />
@@ -60,7 +60,7 @@ export const MenuCard: React.FC<MenuCardProps> = ({ item, onSelect }) => {
               </span>
             )}
           </div>
-          <p className="text-xs text-terracotta font-semibold mt-0.5">{item.chineseName}</p>
+          <p className="text-xs text-[#B03620] font-semibold mt-0.5">{item.chineseName}</p>
 
           <p className="text-[11px] text-navy/70 mt-1 line-clamp-2 leading-relaxed">
             {item.description}

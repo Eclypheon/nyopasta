@@ -154,12 +154,12 @@ export default function App() {
       </main>
 
       {/* Admin Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex items-center justify-around py-2 z-30 shadow-lg">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex items-center justify-around pt-2 pb-[max(0.6rem,env(safe-area-inset-bottom,0px))] z-30 shadow-lg">
         <button
           type="button"
           onClick={() => setActiveTab('orders')}
           className={`flex flex-col items-center text-xs font-bold transition-colors ${
-            activeTab === 'orders' ? 'text-terracotta' : 'text-gray-400 hover:text-gray-600'
+            activeTab === 'orders' ? 'text-terracotta' : 'text-gray-500 hover:text-navy'
           }`}
         >
           <ClipboardList className="w-5 h-5 mb-0.5" />
@@ -170,7 +170,7 @@ export default function App() {
           type="button"
           onClick={() => setActiveTab('inventory')}
           className={`flex flex-col items-center text-xs font-bold transition-colors ${
-            activeTab === 'inventory' ? 'text-terracotta' : 'text-gray-400 hover:text-gray-600'
+            activeTab === 'inventory' ? 'text-terracotta' : 'text-gray-500 hover:text-navy'
           }`}
         >
           <Package className="w-5 h-5 mb-0.5" />
@@ -181,7 +181,7 @@ export default function App() {
           type="button"
           onClick={() => setActiveTab('scanner')}
           className={`flex flex-col items-center text-xs font-bold transition-colors ${
-            activeTab === 'scanner' ? 'text-terracotta' : 'text-gray-400 hover:text-gray-600'
+            activeTab === 'scanner' ? 'text-terracotta' : 'text-gray-500 hover:text-navy'
           }`}
         >
           <QrCode className="w-5 h-5 mb-0.5" />
@@ -192,7 +192,7 @@ export default function App() {
           type="button"
           onClick={() => setActiveTab('customers')}
           className={`flex flex-col items-center text-xs font-bold transition-colors ${
-            activeTab === 'customers' ? 'text-terracotta' : 'text-gray-400 hover:text-gray-600'
+            activeTab === 'customers' ? 'text-terracotta' : 'text-gray-500 hover:text-navy'
           }`}
         >
           <Users className="w-5 h-5 mb-0.5" />
@@ -203,7 +203,7 @@ export default function App() {
           type="button"
           onClick={() => setActiveTab('settings')}
           className={`flex flex-col items-center text-xs font-bold transition-colors ${
-            activeTab === 'settings' ? 'text-terracotta' : 'text-gray-400 hover:text-gray-600'
+            activeTab === 'settings' ? 'text-terracotta' : 'text-gray-500 hover:text-navy'
           }`}
         >
           <Settings className="w-5 h-5 mb-0.5" />
