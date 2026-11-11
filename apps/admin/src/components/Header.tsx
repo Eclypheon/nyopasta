@@ -27,7 +27,15 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="bg-navy text-white px-4 py-3 sticky top-0 z-40 shadow-md flex items-center justify-between border-b border-navy-900">
+    <header
+      className="bg-navy text-white px-4 sticky top-0 z-40 shadow-md flex items-center justify-between border-b border-navy-900"
+      style={{
+        paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))',
+        paddingBottom: '0.75rem',
+        paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px))',
+        paddingRight: 'max(1rem, env(safe-area-inset-right, 0px))',
+      }}
+    >
       <div className="flex items-center gap-3">
         <img
           src={`${import.meta.env.BASE_URL}stamp-darkblue.png`}

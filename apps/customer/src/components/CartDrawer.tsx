@@ -120,7 +120,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-4 bg-white border-b border-cream-dark flex items-center justify-between sticky top-0 z-10">
+        <div
+          className="px-4 bg-white border-b border-cream-dark flex items-center justify-between sticky top-0 z-10"
+          style={{
+            paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))',
+            paddingBottom: '1rem',
+            paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px))',
+            paddingRight: 'max(1rem, env(safe-area-inset-right, 0px))',
+          }}
+        >
           <div className="flex items-center gap-2">
             <h2 className="text-base font-extrabold text-navy">Your Order Cart</h2>
             <span className="text-xs bg-terracotta/10 text-terracotta font-extrabold px-2 py-0.5 rounded-full">
@@ -559,7 +567,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
 
         {/* Footer Checkout Button */}
         {items.length > 0 && (
-          <div className="p-4 bg-white border-t border-cream-dark">
+          <div
+            className="px-4 bg-white border-t border-cream-dark"
+            style={{
+              paddingTop: '1rem',
+              paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
+              paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px))',
+              paddingRight: 'max(1rem, env(safe-area-inset-right, 0px))',
+            }}
+          >
             {!isStoreOpen ? (
               <div className="space-y-2">
                 <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs text-center font-bold">

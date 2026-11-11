@@ -79,9 +79,14 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
   const sauceAddons = availableAddons.filter((a) => a.category === 'sauce');
 
   return (
-    <div className="fixed inset-0 z-50 bg-navy/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+    <div
+      className="fixed inset-0 z-50 bg-navy/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in"
+      style={{
+        paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))',
+      }}
+    >
       <div
-        className="bg-cream-light w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col shadow-2xl border border-cream-dark overflow-hidden animate-slide-up"
+        className="bg-cream-light w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[85vh] sm:max-h-[90vh] flex flex-col shadow-2xl border border-cream-dark overflow-hidden animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -344,7 +349,12 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
         </div>
 
         {/* Footer with Quantity Stepper and Add Button */}
-        <div className="p-4 bg-white border-t border-cream-dark flex items-center gap-3">
+        <div
+          className="px-4 pt-3 bg-white border-t border-cream-dark flex items-center gap-3"
+          style={{
+            paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
+          }}
+        >
           {/* Quantity Controls */}
           <div className="flex items-center border border-cream-dark rounded-xl bg-cream-light p-1">
             <button

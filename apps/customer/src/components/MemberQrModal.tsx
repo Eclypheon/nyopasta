@@ -39,7 +39,15 @@ export const MemberQrModal: React.FC<MemberQrModalProps> = ({ isOpen, onClose })
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-navy/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+    <div
+      className="fixed inset-0 z-50 bg-navy/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in overflow-y-auto"
+      style={{
+        paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))',
+        paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
+        paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px))',
+        paddingRight: 'max(1rem, env(safe-area-inset-right, 0px))',
+      }}
+    >
       <div
         className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-cream-dark text-center relative overflow-hidden animate-scale-in"
         onClick={(e) => e.stopPropagation()}

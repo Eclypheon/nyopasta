@@ -129,7 +129,10 @@ function CustomerAppContent() {
           {/* Right Scrollable Content Pane with ALL Items */}
           <div
             ref={scrollContainerRef}
-            className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-6 pb-28 scroll-smooth"
+            className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-6 scroll-smooth"
+            style={{
+              paddingBottom: 'calc(7.5rem + env(safe-area-inset-bottom, 0px))',
+            }}
           >
             {/* 1-Tap Reorder Quick Banner if last order exists */}
             {lastOrder && (
@@ -234,21 +237,36 @@ function CustomerAppContent() {
 
       {/* Loyalty Tab */}
       {activeTab === 'loyalty' && (
-        <div className="flex-1 overflow-y-auto p-4 pb-28">
+        <div
+          className="flex-1 overflow-y-auto p-4"
+          style={{
+            paddingBottom: 'calc(7.5rem + env(safe-area-inset-bottom, 0px))',
+          }}
+        >
           <LoyaltyCard onOpenQrModal={() => setIsQrModalOpen(true)} />
         </div>
       )}
 
       {/* Orders Tab */}
       {activeTab === 'orders' && (
-        <div className="flex-1 overflow-y-auto p-4 pb-28">
+        <div
+          className="flex-1 overflow-y-auto p-4"
+          style={{
+            paddingBottom: 'calc(7.5rem + env(safe-area-inset-bottom, 0px))',
+          }}
+        >
           <OrderHistoryView onGoToMenu={() => setActiveTab('menu')} />
         </div>
       )}
 
       {/* Floating Bottom Cart Bar */}
       {activeTab === 'menu' && totalItemCount > 0 && !isCartOpen && (
-        <div className="fixed bottom-[74px] left-0 right-0 max-w-lg mx-auto px-4 z-30 pointer-events-none animate-slide-up">
+        <div
+          className="fixed left-0 right-0 max-w-lg mx-auto px-4 z-30 pointer-events-none animate-slide-up"
+          style={{
+            bottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px))',
+          }}
+        >
           <button
             type="button"
             onClick={() => setIsCartOpen(true)}
@@ -269,7 +287,14 @@ function CustomerAppContent() {
       )}
 
       {/* Fixed Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white border-t border-cream-dark flex items-center justify-around pt-2 pb-[max(0.6rem,env(safe-area-inset-bottom,0px))] z-30 shadow-lg">
+      <nav
+        className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white border-t border-cream-dark flex items-center justify-around pt-2 z-30 shadow-lg"
+        style={{
+          paddingBottom: 'calc(0.6rem + env(safe-area-inset-bottom, 0px))',
+          paddingLeft: 'max(0.5rem, env(safe-area-inset-left, 0px))',
+          paddingRight: 'max(0.5rem, env(safe-area-inset-right, 0px))',
+        }}
+      >
         <button
           type="button"
           onClick={() => setActiveTab('menu')}

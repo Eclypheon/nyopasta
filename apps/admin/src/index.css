@@ -4,6 +4,10 @@
 
 :root {
   -webkit-tap-highlight-color: transparent;
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
 }
 
 html, body {
@@ -13,6 +17,7 @@ html, body {
   width: 100%;
   max-width: 100vw;
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: #F3F4F6;
   overflow-x: hidden;
   touch-action: pan-y;

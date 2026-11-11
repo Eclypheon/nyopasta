@@ -140,7 +140,12 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col pb-20">
+    <div
+      className="min-h-screen bg-gray-100 flex flex-col"
+      style={{
+        paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))',
+      }}
+    >
       {/* Top Header */}
       <Header
         storeSettings={storeSettings}
@@ -179,7 +184,14 @@ export default function App() {
       </main>
 
       {/* Admin Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex items-center justify-around pt-2 pb-[max(0.6rem,env(safe-area-inset-bottom,0px))] z-30 shadow-lg">
+      <nav
+        className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex items-center justify-around pt-2 z-30 shadow-lg"
+        style={{
+          paddingBottom: 'calc(0.6rem + env(safe-area-inset-bottom, 0px))',
+          paddingLeft: 'max(0.5rem, env(safe-area-inset-left, 0px))',
+          paddingRight: 'max(0.5rem, env(safe-area-inset-right, 0px))',
+        }}
+      >
         <button
           type="button"
           onClick={() => setActiveTab('orders')}

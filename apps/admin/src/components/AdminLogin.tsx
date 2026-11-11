@@ -34,7 +34,15 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+    <div
+      className="min-h-screen bg-gray-100 flex items-center justify-center p-4"
+      style={{
+        paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))',
+        paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
+        paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px))',
+        paddingRight: 'max(1rem, env(safe-area-inset-right, 0px))',
+      }}
+    >
       <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl border border-gray-200 p-6 sm:p-8 space-y-6 animate-scale-in">
         {/* Brand Header */}
         <div className="text-center space-y-2">

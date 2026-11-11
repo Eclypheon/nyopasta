@@ -34,7 +34,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
   };
 
   return (
-    <header className="bg-white border-b border-cream-dark px-4 py-3 sticky top-0 z-40 shadow-xs flex items-center justify-between">
+    <header
+      className="bg-white border-b border-cream-dark px-4 sticky top-0 z-40 shadow-xs flex items-center justify-between"
+      style={{
+        paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))',
+        paddingBottom: '0.75rem',
+        paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px))',
+        paddingRight: 'max(1rem, env(safe-area-inset-right, 0px))',
+      }}
+    >
       <div className="flex items-center gap-3">
         <div
           className="w-10 h-10 rounded-full border-2 border-terracotta overflow-hidden shadow-xs shrink-0 bg-cream flex items-center justify-center"
