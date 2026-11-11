@@ -16,6 +16,14 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
+      // Prevent multi-touch gesture zoom in PWA
+      document.addEventListener('gesturestart', (e) => e.preventDefault());
+      document.addEventListener('touchmove', (e) => {
+        if (e.touches && e.touches.length > 1) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('./sw.js').catch((err) => {

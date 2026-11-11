@@ -52,7 +52,12 @@ export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ onOpenQrModal }) => {
         {/* Card Header */}
         <div className="text-center relative z-10 pb-4 border-b border-[#E8DEC9]">
           <div className="flex items-center justify-center gap-2 mb-1">
-            <img src={`${import.meta.env.BASE_URL}logo.jpg`} alt="NYO Pasta" className="w-8 h-8 rounded-full border border-terracotta object-cover" />
+            <img
+              src={`${import.meta.env.BASE_URL}logo.jpg`}
+              alt="NYO Pasta"
+              className="w-8 h-8 rounded-full border border-terracotta object-cover"
+              style={{ width: 32, height: 32, minWidth: 32, minHeight: 32 }}
+            />
             <h2 className="text-xl font-black text-terracotta tracking-wider">NYO PASTA</h2>
           </div>
           <p className="text-[11px] font-bold text-navy/70 tracking-wide uppercase">

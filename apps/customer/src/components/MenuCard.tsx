@@ -23,12 +23,16 @@ export const MenuCard: React.FC<MenuCardProps> = ({ item, onSelect }) => {
       }`}
     >
       {/* Dish Photo */}
-      <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden shrink-0 bg-cream-dark/20 border border-cream-dark relative shadow-2xs">
+      <div
+        className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden shrink-0 bg-cream-dark/20 border border-cream-dark relative shadow-2xs"
+        style={{ width: 96, height: 96, minWidth: 96, minHeight: 96 }}
+      >
         {imageSrc ? (
           <img
             src={imageSrc}
             alt={item.name}
             className={`w-full h-full object-cover transition-transform duration-300 ${!isSoldOut && 'hover:scale-105'}`}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';
             }}

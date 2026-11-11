@@ -24,11 +24,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
   return (
     <header className="bg-white border-b border-cream-dark px-4 py-3 sticky top-0 z-40 shadow-xs flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full border-2 border-terracotta overflow-hidden shadow-xs shrink-0 bg-cream flex items-center justify-center">
+        <div
+          className="w-10 h-10 rounded-full border-2 border-terracotta overflow-hidden shadow-xs shrink-0 bg-cream flex items-center justify-center"
+          style={{ width: 40, height: 40, minWidth: 40, minHeight: 40, maxWidth: 40, maxHeight: 40 }}
+        >
           <img
             src={logoUrl}
             alt="NYO Pasta Logo"
             className="w-full h-full object-cover"
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             onError={(e) => {
               // Fallback to dark-blue stamp if logo.jpg fails
               (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}stamp-darkblue.png`;

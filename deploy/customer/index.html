@@ -11,12 +11,20 @@
     <link rel="manifest" href="./manifest.json" />
     <link rel="apple-touch-icon" href="./logo.jpg" />
     <title>NYO Pasta | Not Your Ordinary Pasta</title>
-    <script type="module" crossorigin src="/nyopasta/customer/assets/index-DK0Qev5q.js"></script>
-    <link rel="stylesheet" crossorigin href="/nyopasta/customer/assets/index-ExKW6adZ.css">
+    <script type="module" crossorigin src="/nyopasta/customer/assets/index-DfK5iUxu.js"></script>
+    <link rel="stylesheet" crossorigin href="/nyopasta/customer/assets/index-codkOMSg.css">
   </head>
   <body class="bg-cream text-navy antialiased selection:bg-terracotta selection:text-white">
     <div id="root"></div>
     <script>
+      // Prevent multi-touch gesture zoom in PWA
+      document.addEventListener('gesturestart', (e) => e.preventDefault());
+      document.addEventListener('touchmove', (e) => {
+        if (e.touches && e.touches.length > 1) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('./sw.js').catch((err) => {
