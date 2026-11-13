@@ -110,6 +110,7 @@ async function run() {
   await ensureStringAttribute('menu_items', 'chineseDescription', 1000, false);
   await ensureStringAttribute('menu_items', 'tag', 32, false);
   await ensureBooleanAttribute('menu_items', 'isSoldOut', false, false);
+  await ensureBooleanAttribute('menu_items', 'isArchived', false, false);
   await ensureStringAttribute('menu_items', 'imageUrl', 512, false);
 
   // 4.2 orders collection

@@ -98,6 +98,44 @@ export function deduplicateProfiles(profiles: UserProfile[]): UserProfile[] {
   return Array.from(new Set(map.values()));
 }
 
+function mapMenuDoc(doc: any): MenuItem {
+  return {
+    id: doc.$id,
+    name: doc.name,
+    chineseName: doc.chineseName,
+    category: doc.category,
+    subcategory: doc.subcategory,
+    price: doc.price,
+    isKidOption: doc.isKidOption,
+    kidPrice: doc.kidPrice,
+    description: doc.description,
+    chineseDescription: doc.chineseDescription,
+    tag: doc.tag,
+    isSoldOut: Boolean(doc.isSoldOut),
+    isArchived: Boolean(doc.isArchived),
+    imageUrl: doc.imageUrl,
+  };
+}
+
+// Appwrite treats empty optional strings as nulls
+function menuItemToDoc(item: Omit<MenuItem, 'id'>) {
+  return {
+    name: item.name,
+    chineseName: item.chineseName,
+    category: item.category,
+    subcategory: item.subcategory || null,
+    price: item.price,
+    isKidOption: Boolean(item.isKidOption),
+    kidPrice: item.isKidOption && item.kidPrice ? item.kidPrice : null,
+    description: item.description || '',
+    chineseDescription: item.chineseDescription || '',
+    tag: item.tag || null,
+    isSoldOut: Boolean(item.isSoldOut),
+    isArchived: Boolean(item.isArchived),
+    imageUrl: item.imageUrl || null,
+  };
+}
+
 // Reactive local memory store fallback when running without cloud keys
 class LocalReactiveStore {
   private menuItems: MenuItem[] = [...INITIAL_MENU_ITEMS];
@@ -117,10 +155,11 @@ class LocalReactiveStore {
         if (savedMenu) {
           try {
             const parsed: MenuItem[] = JSON.parse(savedMenu);
-            this.menuItems = INITIAL_MENU_ITEMS.map((init) => {
-              const saved = parsed.find((p) => p.id === init.id);
-              return saved ? { ...init, isSoldOut: saved.isSoldOut } : init;
-            });
+            // Keep saved items (edits, new, archived) and append any newly shipped seed dishes
+            this.menuItems = [
+              ...parsed,
+              ...INITIAL_MENU_ITEMS.filter((init) => !parsed.some((p) => p.id === init.id)),
+            ];
           } catch {
             this.menuItems = [...INITIAL_MENU_ITEMS];
           }
@@ -186,6 +225,26 @@ class LocalReactiveStore {
     const updated = this.menuItems.find((i) => i.id === id);
     if (!updated) throw new Error('Item not found');
     return updated;
+  }
+
+  createMenuItem(item: Omit<MenuItem, 'id'>): MenuItem {
+    const newItem: MenuItem = {
+      ...item,
+      id: `item_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    };
+    this.menuItems = [...this.menuItems, newItem];
+    this.save();
+    this.notifyMenu();
+    return newItem;
+  }
+
+  updateMenuItem(item: MenuItem): MenuItem {
+    const exists = this.menuItems.some((i) => i.id === item.id);
+    if (!exists) throw new Error('Item not found');
+    this.menuItems = this.menuItems.map((i) => (i.id === item.id ? item : i));
+    this.save();
+    this.notifyMenu();
+    return item;
   }
 
   setAllSoldOut(isSoldOut: boolean) {
@@ -520,21 +579,7 @@ export const api = {
     if (!isCloudConnected) return localStore.getMenuItems();
     try {
       const res = await databases.listDocuments(DB_ID, 'menu_items', [Query.limit(100)]);
-      return res.documents.map((doc: any) => ({
-        id: doc.$id,
-        name: doc.name,
-        chineseName: doc.chineseName,
-        category: doc.category,
-        subcategory: doc.subcategory,
-        price: doc.price,
-        isKidOption: doc.isKidOption,
-        kidPrice: doc.kidPrice,
-        description: doc.description,
-        chineseDescription: doc.chineseDescription,
-        tag: doc.tag,
-        isSoldOut: doc.isSoldOut,
-        imageUrl: doc.imageUrl,
-      }));
+      return res.documents.map(mapMenuDoc);
     } catch (err) {
       console.warn('Appwrite getMenuItems failed, falling back to local store:', err);
       return localStore.getMenuItems();
@@ -545,25 +590,34 @@ export const api = {
     if (!isCloudConnected) return localStore.updateMenuItemSoldOut(id, isSoldOut);
     try {
       const doc: any = await databases.updateDocument(DB_ID, 'menu_items', id, { isSoldOut });
-      return {
-        id: doc.$id,
-        name: doc.name,
-        chineseName: doc.chineseName,
-        category: doc.category,
-        subcategory: doc.subcategory,
-        price: doc.price,
-        isKidOption: doc.isKidOption,
-        kidPrice: doc.kidPrice,
-        description: doc.description,
-        chineseDescription: doc.chineseDescription,
-        tag: doc.tag,
-        isSoldOut: doc.isSoldOut,
-        imageUrl: doc.imageUrl,
-      };
+      return mapMenuDoc(doc);
     } catch (err) {
       console.warn('Appwrite updateMenuItemSoldOut failed, falling back:', err);
       return localStore.updateMenuItemSoldOut(id, isSoldOut);
     }
+  },
+
+  // No local fallback on failure: a silent fallback would diverge from the live menu
+  async createMenuItem(item: Omit<MenuItem, 'id'>): Promise<MenuItem> {
+    if (!isCloudConnected) return localStore.createMenuItem(item);
+    const doc: any = await databases.createDocument(
+      DB_ID,
+      'menu_items',
+      ID.unique(),
+      menuItemToDoc(item)
+    );
+    return mapMenuDoc(doc);
+  },
+
+  async updateMenuItem(item: MenuItem): Promise<MenuItem> {
+    if (!isCloudConnected) return localStore.updateMenuItem(item);
+    const doc: any = await databases.updateDocument(
+      DB_ID,
+      'menu_items',
+      item.id,
+      menuItemToDoc(item)
+    );
+    return mapMenuDoc(doc);
   },
 
   async setAllMenuItemsSoldOut(isSoldOut: boolean): Promise<void> {

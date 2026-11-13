@@ -13,6 +13,7 @@ export interface MenuItem {
   chineseDescription?: string;
   tag?: string;
   isSoldOut: boolean;
+  isArchived?: boolean;
   imageUrl?: string;
 }
 
