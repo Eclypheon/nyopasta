@@ -25,6 +25,7 @@ import { SettingsTab } from './components/SettingsTab';
 import { ScannerTab } from './components/ScannerTab';
 import { CustomersTab } from './components/CustomersTab';
 import { StatsTab } from './components/StatsTab';
+import { MenuEditorTab } from './components/MenuEditorTab';
 import { AdminLogin } from './components/AdminLogin';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { unlockAudioContext } from './utils/audio';
@@ -33,7 +34,10 @@ export default function App() {
   const [adminUser, setAdminUser] = useState<string | null>(() => {
     return typeof window !== 'undefined' ? localStorage.getItem('nyo_admin_auth') : null;
   });
-  const [activeTab, setActiveTab] = useState<'orders' | 'inventory' | 'scanner' | 'customers' | 'stats' | 'settings'>('orders');
+  const [activeTab, setActiveTab] = useState<
+    'orders' | 'inventory' | 'scanner' | 'customers' | 'stats' | 'settings' | 'menu'
+  >('orders');
+  const [menuReturnTab, setMenuReturnTab] = useState<'inventory' | 'settings'>('inventory');
   const [scannerPrefillId, setScannerPrefillId] = useState<string | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>(INITIAL_MENU_ITEMS);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -159,6 +163,13 @@ export default function App() {
     setMenuItems(items);
   }, []);
 
+  // Rare admin flow: full menu editor page, reached from Stock or Settings
+  const openMenuEditor = (from: 'inventory' | 'settings') => {
+    setMenuReturnTab(from);
+    setActiveTab('menu');
+    window.scrollTo(0, 0);
+  };
+
   const refreshOrders = useCallback(async () => {
     const list = await api.getOrders();
     setOrders(list);
@@ -251,6 +262,18 @@ export default function App() {
             storeSettings={storeSettings}
             onMenuUpdated={refreshMenu}
             onSettingsUpdated={refreshSettings}
+            onOpenMenuEditor={() => openMenuEditor('inventory')}
+          />
+        )}
+
+        {activeTab === 'menu' && (
+          <MenuEditorTab
+            menuItems={menuItems}
+            onMenuUpdated={refreshMenu}
+            onBack={() => {
+              setActiveTab(menuReturnTab);
+              window.scrollTo(0, 0);
+            }}
           />
         )}
 
@@ -281,6 +304,7 @@ export default function App() {
           <SettingsTab
             storeSettings={storeSettings}
             onSettingsSaved={refreshSettings}
+            onOpenMenuEditor={() => openMenuEditor('settings')}
           />
         )}
 

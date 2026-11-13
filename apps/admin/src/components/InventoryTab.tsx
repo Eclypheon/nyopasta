@@ -7,6 +7,7 @@ import {
   XCircle,
   AlertOctagon,
   Sparkles,
+  UtensilsCrossed,
 } from 'lucide-react';
 
 interface InventoryTabProps {
@@ -14,6 +15,7 @@ interface InventoryTabProps {
   storeSettings: StoreSettings;
   onMenuUpdated?: () => void;
   onSettingsUpdated?: () => void;
+  onOpenMenuEditor?: () => void;
 }
 
 export const InventoryTab: React.FC<InventoryTabProps> = ({
@@ -21,6 +23,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
   storeSettings,
   onMenuUpdated,
   onSettingsUpdated,
+  onOpenMenuEditor,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -96,6 +99,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
   // Filtered menu items
   const filteredItems = useMemo(() => {
     return menuItems.filter((item) => {
+      if (item.isArchived) return false;
       const matchesCategory =
         selectedCategory === 'all' || item.category === selectedCategory;
       const q = searchQuery.toLowerCase().trim();
@@ -108,8 +112,9 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
     });
   }, [menuItems, selectedCategory, searchQuery]);
 
-  const soldOutCount = menuItems.filter((i) => i.isSoldOut).length;
-  const inStockCount = menuItems.length - soldOutCount;
+  const soldOutCount = menuItems.filter((i) => i.isSoldOut && !i.isArchived).length;
+  const liveItemCount = menuItems.filter((i) => !i.isArchived).length;
+  const inStockCount = liveItemCount - soldOutCount;
 
   return (
     <div className="space-y-4">
@@ -163,7 +168,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
         <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-gray-100 text-center">
           <div className="bg-gray-50 p-2 rounded-xl">
             <span className="text-[11px] text-gray-500 font-medium">Total Items</span>
-            <p className="text-base font-black text-gray-900">{menuItems.length}</p>
+            <p className="text-base font-black text-gray-900">{liveItemCount}</p>
           </div>
           <div className="bg-emerald-50/70 p-2 rounded-xl">
             <span className="text-[11px] text-emerald-700 font-medium">In Stock</span>
@@ -174,6 +179,16 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
             <p className="text-base font-black text-red-800">{soldOutCount}</p>
           </div>
         </div>
+
+        {/* Rarely used: opens the full menu editor page */}
+        <button
+          type="button"
+          onClick={onOpenMenuEditor}
+          className="mt-3 w-full px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-navy border border-navy/25 hover:bg-navy/5 flex items-center justify-center gap-1.5 transition-colors"
+        >
+          <UtensilsCrossed className="w-3.5 h-3.5" />
+          Change menu (add, edit or archive dishes)
+        </button>
       </div>
 
       {/* Filter and Search Bar */}

@@ -24,11 +24,14 @@ import {
   ShoppingBag,
   QrCode as QrIcon,
   Phone,
+  UtensilsCrossed,
+  ChevronRight,
 } from 'lucide-react';
 
 interface SettingsTabProps {
   storeSettings: StoreSettings;
   onSettingsSaved?: () => void;
+  onOpenMenuEditor?: () => void;
 }
 
 const DAYS_SEQUENCE: DayOfWeek[] = [
@@ -44,6 +47,7 @@ const DAYS_SEQUENCE: DayOfWeek[] = [
 export const SettingsTab: React.FC<SettingsTabProps> = ({
   storeSettings,
   onSettingsSaved,
+  onOpenMenuEditor,
 }) => {
   const [schedule, setSchedule] = useState<DaySchedule[]>(() => {
     return storeSettings.schedule && storeSettings.schedule.length > 0
@@ -321,6 +325,26 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           <AlertCircle className="w-4 h-4 text-red-600" />
           Failed to save settings. Please try again.
         </div>
+      )}
+
+      {/* Menu editor shortcut: rarely used, so it lives outside the stock page too */}
+      {onOpenMenuEditor && (
+        <button
+          type="button"
+          onClick={onOpenMenuEditor}
+          className="w-full bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex items-center justify-between gap-3 text-left hover:border-navy/30 transition-colors"
+        >
+          <div>
+            <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
+              <UtensilsCrossed className="w-4 h-4 text-navy" />
+              Change menu
+            </h3>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Add, edit, archive or restore dishes. Use the Stock page for daily sold-out toggles.
+            </p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
+        </button>
       )}
 
       {/* Weekly Operating Schedule Editor */}

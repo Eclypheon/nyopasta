@@ -89,13 +89,15 @@ function CustomerAppContent() {
 
   // Real-time subscription and active polling for live menu items & stock availability
   useEffect(() => {
+    const liveMenu = (items: MenuItem[]) => setMenuItems(items.filter((i) => !i.isArchived));
+
     const unsub = api.subscribeToMenuItems((items) => {
-      setMenuItems(items);
+      liveMenu(items);
     });
 
     const pollTimer = setInterval(() => {
       api.getMenuItems().then((items) => {
-        if (items && items.length > 0) setMenuItems(items);
+        if (items && items.length > 0) liveMenu(items);
       }).catch(() => {});
     }, 3500);
 
