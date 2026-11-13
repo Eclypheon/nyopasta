@@ -360,6 +360,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   isManuallyClosed: false,
   manualCloseReason: '',
   bannerMessage: '',
+  isMaintenanceMode: false,
   schedule: DEFAULT_DAY_SCHEDULES,
   enablePayNow: true,
   enableStripe: false,

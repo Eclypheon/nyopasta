@@ -20,6 +20,7 @@ import { OrderSuccessModal } from './components/OrderSuccessModal';
 import { ReorderBanner } from './components/ReorderBanner';
 import { AuthModal } from './components/AuthModal';
 import { PayNowModal } from './components/PayNowModal';
+import { MaintenanceOverlay } from './components/MaintenanceOverlay';
 
 function CustomerAppContent() {
   const [activeTab, setActiveTab] = useState<'menu' | 'loyalty' | 'orders'>('menu');
@@ -443,6 +444,9 @@ function CustomerAppContent() {
         onSuccess={handleAuthSuccess}
         onContinueAsGuest={loginAsGuest}
       />
+
+      {/* Maintenance lock: greys out the whole site while the admin switch is on */}
+      {storeSettings.isMaintenanceMode && <MaintenanceOverlay settings={storeSettings} />}
     </div>
   );
 }

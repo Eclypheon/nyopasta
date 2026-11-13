@@ -1,12 +1,13 @@
 import React, { useMemo } from 'react';
 import { StoreSettings, forceResetPwaCache, isStoreCurrentlyOpen } from '@nyopasta/shared';
-import { Power, RefreshCw, Sparkles, LogOut } from 'lucide-react';
+import { Power, RefreshCw, Sparkles, LogOut, Wrench } from 'lucide-react';
 
 interface HeaderProps {
   storeSettings: StoreSettings;
   adminUser?: string;
   onLogout?: () => void;
   onQuickToggleShop?: () => void;
+  onToggleMaintenance?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -14,10 +15,12 @@ export const Header: React.FC<HeaderProps> = ({
   adminUser,
   onLogout,
   onQuickToggleShop,
+  onToggleMaintenance,
 }) => {
   const currentStatus = useMemo(() => isStoreCurrentlyOpen(storeSettings), [storeSettings]);
   const isEffectiveOpen = currentStatus.isOpen;
   const isOverridden = Boolean(currentStatus.isOverridden);
+  const isMaintenance = Boolean(storeSettings.isMaintenanceMode);
 
   const handleResetCache = async () => {
     const ok = window.confirm(
@@ -50,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
           }}
         />
         <div className="flex items-center gap-1.5 min-w-0">
-          <h1 className="font-black text-xs sm:text-sm tracking-wide leading-tight whitespace-nowrap text-white">
+          <h1 className="font-black text-xs sm:text-sm tracking-wide leading-tight whitespace-nowrap truncate text-white">
             NYOPASTA ADMIN
           </h1>
           <span
@@ -112,6 +115,28 @@ export const Header: React.FC<HeaderProps> = ({
             </>
           )}
         </button>
+
+        {/* Customer Site Maintenance Mode Toggle */}
+        {onToggleMaintenance && (
+          <button
+            type="button"
+            onClick={onToggleMaintenance}
+            aria-pressed={isMaintenance}
+            title={
+              isMaintenance
+                ? 'Maintenance ON - customer site is greyed out. Tap to restore online ordering.'
+                : 'Grey out the customer site and tell customers to order at the counter'
+            }
+            aria-label="Toggle customer site maintenance mode"
+            className={`p-1.5 rounded-lg border transition-colors shrink-0 flex items-center gap-1 ${
+              isMaintenance
+                ? 'bg-amber-500 hover:bg-amber-600 border-amber-400 text-white'
+                : 'bg-white/10 hover:bg-white/20 border-white/10 text-gray-300 hover:text-white'
+            }`}
+          >
+            <Wrench className="w-3.5 h-3.5" />
+          </button>
+        )}
 
         {/* PWA On-Device Cache Reset Button */}
         <button

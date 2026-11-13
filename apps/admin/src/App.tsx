@@ -208,6 +208,17 @@ export default function App() {
     }
   };
 
+  // Grey out the customer site for maintenance (orders blocked, counter notice shown)
+  const handleToggleMaintenance = async () => {
+    const turningOn = !storeSettings.isMaintenanceMode;
+    const confirmMsg = turningOn
+      ? 'Put the customer site under maintenance? Customers can browse but will be told to order at the counter.'
+      : 'Bring the customer site back online for ordering?';
+    if (!window.confirm(confirmMsg)) return;
+    await api.updateStoreSettings({ isMaintenanceMode: turningOn });
+    await refreshSettings();
+  };
+
   if (!adminUser) {
     return <AdminLogin onLoginSuccess={(u) => setAdminUser(u)} />;
   }
@@ -225,6 +236,7 @@ export default function App() {
         adminUser={adminUser}
         onLogout={handleLogout}
         onQuickToggleShop={handleQuickToggleShop}
+        onToggleMaintenance={handleToggleMaintenance}
       />
 
       {/* Main Content Area */}

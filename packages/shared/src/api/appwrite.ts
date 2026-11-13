@@ -157,7 +157,9 @@ class LocalReactiveStore {
             const parsed = JSON.parse(event.newValue);
             this.profiles = new Map(Object.entries(parsed));
             this.notifyProfiles();
-          } catch {}
+          } catch (e) {
+            console.warn('localStore: corrupt nyo_local_profiles payload', e);
+          }
         }
       });
     }
@@ -354,7 +356,7 @@ class LocalReactiveStore {
     userId: string,
     newStampCount: number,
     historyEntry: Omit<StampEvent, 'id' | 'timestamp' | 'balanceAfter'>,
-    milestoneUpdates?: Partial<MilestoneStatus>,
+    _milestoneUpdates?: Partial<MilestoneStatus>,
     voucherDeltas?: { side350?: number; side450?: number; meal850?: number }
   ): UserProfile {
     const profile = this.getProfile(userId);
@@ -585,6 +587,7 @@ export const api = {
       const doc: any = await databases.getDocument(DB_ID, 'store_settings', 'current_store_settings');
       let parsedSchedule = DEFAULT_STORE_SETTINGS.schedule;
       let remoteOverride: 'open' | 'closed' | null = null;
+      let remoteMaintenance = false;
       if (doc.scheduleJson) {
         try {
           const parsed = JSON.parse(doc.scheduleJson);
@@ -594,6 +597,9 @@ export const api = {
             if (Array.isArray(parsed.schedule)) parsedSchedule = parsed.schedule;
             if (parsed.manualOverride === 'open' || parsed.manualOverride === 'closed' || parsed.manualOverride === null) {
               remoteOverride = parsed.manualOverride;
+            }
+            if (typeof parsed.isMaintenanceMode === 'boolean') {
+              remoteMaintenance = parsed.isMaintenanceMode;
             }
           }
         } catch (e) {
@@ -607,6 +613,7 @@ export const api = {
         manualOverride: remoteOverride,
         manualCloseReason: doc.manualCloseReason || '',
         bannerMessage: doc.bannerMessage || '',
+        isMaintenanceMode: remoteMaintenance,
         schedule: parsedSchedule,
         enablePayNow: typeof doc.enablePayNow === 'boolean' ? doc.enablePayNow : true,
         enableStripe: typeof doc.enableStripe === 'boolean' ? doc.enableStripe : false,
@@ -634,16 +641,19 @@ export const api = {
       const currentStore = localStore.getStoreSettings();
       const effectiveSchedule = settings.schedule !== undefined ? settings.schedule : currentStore.schedule;
       const effectiveOverride = settings.manualOverride !== undefined ? settings.manualOverride : currentStore.manualOverride;
+      const effectiveMaintenance = settings.isMaintenanceMode !== undefined ? Boolean(settings.isMaintenanceMode) : Boolean(currentStore.isMaintenanceMode);
 
       const payload: any = {};
       if (settings.isManuallyClosed !== undefined) payload.isManuallyClosed = Boolean(settings.isManuallyClosed);
       if (settings.manualCloseReason !== undefined) payload.manualCloseReason = settings.manualCloseReason;
       if (settings.bannerMessage !== undefined) payload.bannerMessage = settings.bannerMessage;
 
-      // Bundle schedule and manualOverride safely inside scheduleJson (Appwrite collection lacks root manualOverride attribute)
+      // Bundle schedule, manualOverride and isMaintenanceMode inside scheduleJson
+      // (the collection has no root attributes for them)
       payload.scheduleJson = JSON.stringify({
         schedule: effectiveSchedule,
         manualOverride: effectiveOverride || null,
+        isMaintenanceMode: effectiveMaintenance,
       });
 
       if (settings.enablePayNow !== undefined) payload.enablePayNow = Boolean(settings.enablePayNow);
@@ -669,6 +679,7 @@ export const api = {
 
       let parsedSchedule = DEFAULT_STORE_SETTINGS.schedule;
       let remoteOverride: 'open' | 'closed' | null = null;
+      let remoteMaintenance = effectiveMaintenance;
       if (doc.scheduleJson) {
         try {
           const parsed = JSON.parse(doc.scheduleJson);
@@ -679,18 +690,21 @@ export const api = {
             if (parsed.manualOverride === 'open' || parsed.manualOverride === 'closed' || parsed.manualOverride === null) {
               remoteOverride = parsed.manualOverride;
             }
+            if (typeof parsed.isMaintenanceMode === 'boolean') {
+              remoteMaintenance = parsed.isMaintenanceMode;
+            }
           }
         } catch (e) {
           console.warn('Appwrite updateStoreSettings parse scheduleJson error:', e);
         }
       }
-
       const remoteSettings: StoreSettings = {
         id: doc.$id,
         isManuallyClosed: Boolean(doc.isManuallyClosed),
         manualOverride: remoteOverride,
         manualCloseReason: doc.manualCloseReason || '',
         bannerMessage: doc.bannerMessage || '',
+        isMaintenanceMode: remoteMaintenance,
         schedule: parsedSchedule,
         enablePayNow: typeof doc.enablePayNow === 'boolean' ? doc.enablePayNow : true,
         enableStripe: typeof doc.enableStripe === 'boolean' ? doc.enableStripe : false,
@@ -1506,7 +1520,9 @@ export const api = {
       if (saved) {
         try {
           return JSON.parse(saved);
-        } catch {}
+        } catch (e) {
+          console.warn('localStore: corrupt nyo_auth_user payload', e);
+        }
       }
     }
     return null;
@@ -1516,7 +1532,9 @@ export const api = {
     if (isCloudConnected) {
       try {
         await account.deleteSession('current');
-      } catch {}
+      } catch (e) {
+        console.warn('Appwrite logout: deleteSession failed', e);
+      }
     }
     if (typeof window !== 'undefined') {
       localStorage.removeItem('nyo_auth_user');

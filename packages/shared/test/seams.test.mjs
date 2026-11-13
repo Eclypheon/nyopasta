@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { isStoreCurrentlyOpen } from '../dist/utils/schedule.js';
+import { isStoreCurrentlyOpen, getMaintenanceStatus } from '../dist/utils/schedule.js';
+import { isMilestoneRedeemed } from '../dist/utils/loyalty.js';
 import { DEFAULT_STORE_SETTINGS, LOYALTY_MILESTONES } from '../dist/constants/index.js';
 import { localStore } from '../dist/api/appwrite.js';
 
@@ -690,5 +691,72 @@ describe('Seam 13: Admin Order Archival, Archive Purge & Customer Profile Manage
 
     localStore.deleteProfile(tempUserId);
     assert.ok(!localStore.getAllProfiles().some((p) => p.authUserId === tempUserId));
+  });
+});
+
+describe('Seam 14: Milestone Slot Reads REDEEMED Only After Voucher Leaves Wallet', () => {
+  const wallet = (stamps, v350 = 0, v450 = 0, v850 = 0) => ({
+    currentStampCount: stamps,
+    voucherSide350Count: v350,
+    voucherSide450Count: v450,
+    voucherMeal850Count: v850,
+  });
+
+  it('does not mark a freshly reached milestone as redeemed', () => {
+    assert.equal(isMilestoneRedeemed(wallet(4, 1), 4), false);
+    assert.equal(isMilestoneRedeemed(wallet(8, 1, 1), 8), false);
+    assert.equal(isMilestoneRedeemed(wallet(12, 1, 1, 1), 12), false);
+  });
+
+  it('marks the slot redeemed once the last voucher for that milestone is spent', () => {
+    assert.equal(isMilestoneRedeemed(wallet(4, 0), 4), true);
+    assert.equal(isMilestoneRedeemed(wallet(9, 0, 1), 4), true);
+    assert.equal(isMilestoneRedeemed(wallet(12, 0, 0, 0), 12), true);
+  });
+
+  it('keeps the slot unredeemed while extra vouchers are still banked', () => {
+    assert.equal(isMilestoneRedeemed(wallet(6, 2), 4), false);
+    assert.equal(isMilestoneRedeemed(wallet(10, 3, 2), 8), false);
+  });
+
+  it('never marks an unreached milestone as redeemed', () => {
+    assert.equal(isMilestoneRedeemed(wallet(3, 0), 4), false);
+    assert.equal(isMilestoneRedeemed(wallet(7, 0, 0), 8), false);
+    assert.equal(isMilestoneRedeemed(wallet(11, 0, 0, 0), 12), false);
+  });
+
+  it('treats missing wallet counts as zero', () => {
+    assert.equal(isMilestoneRedeemed({ currentStampCount: 5 }, 4), true);
+  });
+});
+
+describe('Seam 15: Customer Site Maintenance Lock', () => {
+  const maintenanceSettings = (extra = {}) => ({
+    ...DEFAULT_STORE_SETTINGS,
+    isManuallyClosed: false,
+    isMaintenanceMode: true,
+    ...extra,
+  });
+
+  it('tells customers to order at the counter while the kitchen is open', () => {
+    const tuesdayNoon = new Date('2026-11-10T12:30:00+08:00');
+    const status = getMaintenanceStatus(maintenanceSettings(), tuesdayNoon);
+    assert.equal(status.isMaintenanceMode, true);
+    assert.equal(status.isOpen, true);
+    assert.match(status.headline, /order at counter/i);
+  });
+
+  it('reports the shop as closed outside operating hours', () => {
+    const mondayNoon = new Date('2026-11-09T12:30:00+08:00');
+    const status = getMaintenanceStatus(maintenanceSettings(), mondayNoon);
+    assert.equal(status.isOpen, false);
+    assert.match(status.headline, /closed/i);
+    assert.match(status.subtext, /Google/i);
+  });
+
+  it('honours a forced-close override while still under maintenance', () => {
+    const tuesdayNoon = new Date('2026-11-10T12:30:00+08:00');
+    const status = getMaintenanceStatus(maintenanceSettings({ manualOverride: 'closed' }), tuesdayNoon);
+    assert.equal(status.isOpen, false);
   });
 });

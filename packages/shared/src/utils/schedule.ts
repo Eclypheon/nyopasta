@@ -141,3 +141,32 @@ export function isStoreCurrentlyOpen(settings: StoreSettings, customDate?: Date)
     scheduledOpen: scheduled.isOpen,
   };
 }
+
+export interface MaintenanceStatus {
+  isMaintenanceMode: boolean;
+  isOpen: boolean;
+  headline: string;
+  subtext: string;
+}
+
+export function getMaintenanceStatus(settings: StoreSettings, now = new Date()): MaintenanceStatus {
+  const isMaintenanceMode = Boolean(settings.isMaintenanceMode);
+  const status = isStoreCurrentlyOpen(settings, now);
+  const isOpen = status.isOpen;
+
+  if (isOpen) {
+    return {
+      isMaintenanceMode,
+      isOpen: true,
+      headline: 'Site under maintenance, please order at counter',
+      subtext: 'Our kitchen is open. Please approach the counter to place your order.',
+    };
+  }
+
+  return {
+    isMaintenanceMode,
+    isOpen: false,
+    headline: 'Site under maintenance and shop is closed',
+    subtext: 'Please confirm operating hours on Google and order at counter if store is opened.',
+  };
+}

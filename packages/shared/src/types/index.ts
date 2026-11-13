@@ -153,6 +153,7 @@ export interface StoreSettings {
   manualOverride?: 'open' | 'closed' | null;
   manualCloseReason?: string;
   bannerMessage?: string;
+  isMaintenanceMode?: boolean;
   schedule: DaySchedule[];
   enablePayNow?: boolean;
   enableStripe?: boolean;
