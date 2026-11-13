@@ -5,7 +5,6 @@ import {
   Award,
   Clock,
   PlusCircle,
-  Ban,
   Trash2,
   Copy,
   Check,
