@@ -488,6 +488,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const key = `stamp${milestone}` as keyof typeof profile.milestoneRedemptions;
     const milestoneUpdates = { [key]: true };
     const label = LOYALTY_MILESTONES[key].label;
+    const voucherKey = milestone === 4 ? 'side350' : milestone === 8 ? 'side450' : 'meal850';
     const updated = await api.updateUserStamps(
       currentUser.id,
       profile.currentStampCount,
@@ -496,7 +497,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         stamps: 0,
         description: `Redeemed ${label}`,
       },
-      milestoneUpdates
+      milestoneUpdates,
+      { [voucherKey]: -1 }
     );
     setProfile(updated);
   };
@@ -528,6 +530,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Place order
   const placeOrder = async (paymentMethod: PaymentMethod): Promise<Order> => {
     if (items.length === 0) throw new Error('Cart is empty');
+
+    if (storeSettings.isMaintenanceMode) {
+      throw new Error('Site is currently under maintenance. Please place your order at the counter.');
+    }
 
     const currentStatus = isStoreCurrentlyOpen(storeSettings);
     if (!currentStatus.isOpen) {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { QrCode, Sparkles, History, Ticket, Ban } from 'lucide-react';
+import { isMilestoneRedeemed } from '@nyopasta/shared';
 import { useCart } from '../context/CartContext';
 
 interface LoyaltyCardProps {
@@ -16,7 +17,6 @@ export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ onOpenQrModal }) => {
 
   const [showHistory, setShowHistory] = useState(false);
   const currentStamps = profile.currentStampCount;
-  const milestones = profile.milestoneRedemptions;
 
   // 12 spots in total: spots 1 to 12
   const spots = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -115,15 +115,15 @@ export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ onOpenQrModal }) => {
               let rewardChinese = '';
 
               if (isMilestone4) {
-                isRedeemed = milestones.stamp4;
+                isRedeemed = isMilestoneRedeemed(profile, 4);
                 rewardLabel = '$3.50';
                 rewardChinese = 'Side';
               } else if (isMilestone8) {
-                isRedeemed = milestones.stamp8;
+                isRedeemed = isMilestoneRedeemed(profile, 8);
                 rewardLabel = '$4.50';
                 rewardChinese = 'Side';
               } else if (isMilestone12) {
-                isRedeemed = milestones.stamp12;
+                isRedeemed = isMilestoneRedeemed(profile, 12);
                 rewardLabel = '$8.50';
                 rewardChinese = 'Main';
               }
@@ -287,9 +287,9 @@ export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ onOpenQrModal }) => {
       </div>
 
       {/* Unlocked Rewards Action Section */}
-      {(!milestones.stamp4 && currentStamps >= 4) ||
-      (!milestones.stamp8 && currentStamps >= 8) ||
-      (!milestones.stamp12 && currentStamps >= 12) ? (
+      {((profile.voucherSide350Count || 0) > 0 && currentStamps >= 4) ||
+      ((profile.voucherSide450Count || 0) > 0 && currentStamps >= 8) ||
+      ((profile.voucherMeal850Count || 0) > 0 && currentStamps >= 12) ? (
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2">
           <div className="flex items-center gap-1.5 text-emerald-800 font-extrabold text-xs">
             <Sparkles className="w-4 h-4 text-emerald-600" />
@@ -297,7 +297,7 @@ export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ onOpenQrModal }) => {
           </div>
 
           <div className="space-y-1.5">
-            {!milestones.stamp4 && currentStamps >= 4 && (
+            {(profile.voucherSide350Count || 0) > 0 && currentStamps >= 4 && (
               <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-emerald-200">
                 <span className="font-bold text-xs text-navy">
                   Stamp 4 Reward: $3.50 Side (价值 $3.50 小菜)
@@ -311,7 +311,7 @@ export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ onOpenQrModal }) => {
               </div>
             )}
 
-            {!milestones.stamp8 && currentStamps >= 8 && (
+            {(profile.voucherSide450Count || 0) > 0 && currentStamps >= 8 && (
               <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-emerald-200">
                 <span className="font-bold text-xs text-navy">
                   Stamp 8 Reward: $4.50 Side (价值 $4.50 小菜)
@@ -325,7 +325,7 @@ export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ onOpenQrModal }) => {
               </div>
             )}
 
-            {!milestones.stamp12 && currentStamps >= 12 && (
+            {(profile.voucherMeal850Count || 0) > 0 && currentStamps >= 12 && (
               <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-emerald-200">
                 <span className="font-bold text-xs text-navy">
                   Stamp 12 Reward: $8.50 Main (价值 $8.50 主食)
