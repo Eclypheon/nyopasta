@@ -86,7 +86,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
       }}
     >
       <div
-        className="bg-cream-light w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[85vh] sm:max-h-[90vh] flex flex-col shadow-2xl border border-cream-dark overflow-hidden animate-slide-up"
+        className="bg-cream-light w-full max-w-md md:max-w-xl rounded-t-3xl sm:rounded-3xl max-h-[85vh] sm:max-h-[90vh] flex flex-col shadow-2xl border border-cream-dark overflow-hidden animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -203,7 +203,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
                             <button
                               type="button"
                               onClick={() => handleAddonDelta(addon.id, -1)}
-                              className="w-6 h-6 rounded-lg bg-cream flex items-center justify-center text-navy font-bold hover:bg-cream-dark"
+                              className="w-6 h-6 md:w-9 md:h-9 rounded-lg bg-cream flex items-center justify-center text-navy font-bold hover:bg-cream-dark"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
@@ -213,7 +213,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
                         <button
                           type="button"
                           onClick={() => handleAddonDelta(addon.id, 1)}
-                          className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold transition-colors ${
+                          className={`w-6 h-6 md:w-9 md:h-9 rounded-lg flex items-center justify-center font-bold transition-colors ${
                             qty > 0
                               ? 'bg-terracotta text-white hover:bg-terracotta-600'
                               : 'bg-cream text-navy hover:bg-cream-dark'
@@ -255,7 +255,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
                             <button
                               type="button"
                               onClick={() => handleAddonDelta(addon.id, -1)}
-                              className="w-6 h-6 rounded-lg bg-cream flex items-center justify-center text-navy font-bold hover:bg-cream-dark"
+                              className="w-6 h-6 md:w-9 md:h-9 rounded-lg bg-cream flex items-center justify-center text-navy font-bold hover:bg-cream-dark"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
@@ -265,7 +265,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
                         <button
                           type="button"
                           onClick={() => handleAddonDelta(addon.id, 1)}
-                          className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold transition-colors ${
+                          className={`w-6 h-6 md:w-9 md:h-9 rounded-lg flex items-center justify-center font-bold transition-colors ${
                             qty > 0
                               ? 'bg-terracotta text-white hover:bg-terracotta-600'
                               : 'bg-cream text-navy hover:bg-cream-dark'
@@ -307,7 +307,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
                             <button
                               type="button"
                               onClick={() => handleAddonDelta(addon.id, -1)}
-                              className="w-6 h-6 rounded-lg bg-cream flex items-center justify-center text-navy font-bold hover:bg-cream-dark"
+                              className="w-6 h-6 md:w-9 md:h-9 rounded-lg bg-cream flex items-center justify-center text-navy font-bold hover:bg-cream-dark"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
@@ -317,7 +317,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
                         <button
                           type="button"
                           onClick={() => handleAddonDelta(addon.id, 1)}
-                          className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold transition-colors ${
+                          className={`w-6 h-6 md:w-9 md:h-9 rounded-lg flex items-center justify-center font-bold transition-colors ${
                             qty > 0
                               ? 'bg-terracotta text-white hover:bg-terracotta-600'
                               : 'bg-cream text-navy hover:bg-cream-dark'
@@ -361,7 +361,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
               type="button"
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
               disabled={quantity <= 1}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-navy hover:bg-cream disabled:opacity-30"
+              className="w-8 h-8 md:w-11 md:h-11 rounded-lg flex items-center justify-center text-navy hover:bg-cream disabled:opacity-30"
             >
               <Minus className="w-3.5 h-3.5" />
             </button>
@@ -369,7 +369,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
             <button
               type="button"
               onClick={() => setQuantity((q) => Math.min(20, q + 1))}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-navy hover:bg-cream"
+              className="w-8 h-8 md:w-11 md:h-11 rounded-lg flex items-center justify-center text-navy hover:bg-cream"
             >
               <Plus className="w-3.5 h-3.5" />
             </button>

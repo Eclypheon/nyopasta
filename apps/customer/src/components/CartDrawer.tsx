@@ -116,7 +116,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
   return (
     <div className="fixed inset-0 z-50 bg-navy/60 backdrop-blur-xs flex justify-end animate-fade-in">
       <div
-        className="bg-cream-light w-full max-w-md h-full flex flex-col shadow-2xl border-l border-cream-dark overflow-hidden animate-slide-left"
+        className="bg-cream-light w-full max-w-md md:max-w-lg h-full flex flex-col shadow-2xl border-l border-cream-dark overflow-hidden animate-slide-left"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -289,25 +289,25 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOrder
                     <div className="flex items-center justify-between pt-1 border-t border-cream-dark/50">
                       <button
                         onClick={() => removeItem(item.id)}
-                        className="text-navy/40 hover:text-red-500 transition-colors p-1"
+                        className="text-navy/40 hover:text-red-500 transition-colors p-1 md:p-2"
                         title="Remove item"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
                       </button>
 
                       <div className="flex items-center gap-1 bg-cream-light border border-cream-dark rounded-lg p-0.5">
                         <button
                           onClick={() => updateItemQuantity(item.id, -1)}
-                          className="w-5 h-5 rounded flex items-center justify-center hover:bg-cream text-navy"
+                          className="w-5 h-5 md:w-9 md:h-9 rounded flex items-center justify-center hover:bg-cream text-navy"
                         >
-                          <Minus className="w-3 h-3" />
+                          <Minus className="w-3 h-3 md:w-4 md:h-4" />
                         </button>
-                        <span className="w-5 text-center font-bold text-xs">{item.quantity}</span>
+                        <span className="w-5 md:w-7 text-center font-bold text-xs md:text-sm">{item.quantity}</span>
                         <button
                           onClick={() => updateItemQuantity(item.id, 1)}
-                          className="w-5 h-5 rounded flex items-center justify-center hover:bg-cream text-navy"
+                          className="w-5 h-5 md:w-9 md:h-9 rounded flex items-center justify-center hover:bg-cream text-navy"
                         >
-                          <Plus className="w-3 h-3" />
+                          <Plus className="w-3 h-3 md:w-4 md:h-4" />
                         </button>
                       </div>
                     </div>

@@ -66,7 +66,7 @@ export const MenuCard: React.FC<MenuCardProps> = ({ item, onSelect }) => {
           </div>
           <p className="text-xs text-[#B03620] font-semibold mt-0.5">{item.chineseName}</p>
 
-          <p className="text-[11px] text-navy/70 mt-1 line-clamp-2 leading-relaxed">
+          <p className="text-[11px] md:text-xs text-navy/70 mt-1 line-clamp-2 leading-relaxed">
             {item.description}
           </p>
         </div>
@@ -106,7 +106,7 @@ export const MenuCard: React.FC<MenuCardProps> = ({ item, onSelect }) => {
                 e.stopPropagation();
                 onSelect(item);
               }}
-              className="bg-terracotta hover:bg-terracotta-600 active:scale-95 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs flex items-center gap-1 transition-all"
+              className="bg-terracotta hover:bg-terracotta-600 active:scale-95 text-white text-xs md:text-sm font-bold px-3 py-1.5 md:px-4 md:py-2.5 rounded-xl shadow-xs flex items-center gap-1 transition-all"
             >
               <Plus className="w-3.5 h-3.5" />
               Add
