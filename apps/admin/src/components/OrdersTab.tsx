@@ -702,14 +702,14 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ orders, onOrderUpdated }) 
                   {group.orders.length} {group.orders.length === 1 ? 'order' : 'orders'} • ${group.dayRevenue.toFixed(2)}
                 </span>
               </div>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-start">
                 {group.orders.map((order) => renderOrderCard(order, false))}
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-start">
           {displayedOrders.map((order, index) =>
             renderOrderCard(order, filter === 'active' && index === 0)
           )}

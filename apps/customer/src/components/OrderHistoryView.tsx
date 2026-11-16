@@ -84,6 +84,7 @@ export const OrderHistoryView: React.FC<OrderHistoryViewProps> = ({ onGoToMenu }
           Order History ({uniqueOrders.length})
         </h3>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
         {uniqueOrders.map((order, index) => {
           const isLatest = index === 0;
           return (
@@ -188,6 +189,7 @@ export const OrderHistoryView: React.FC<OrderHistoryViewProps> = ({ onGoToMenu }
           </div>
         );
       })}
+        </div>
     </div>
 
       {selectedPayNowOrder && (

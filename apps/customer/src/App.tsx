@@ -152,7 +152,7 @@ function CustomerAppContent() {
   const fried = menuItems.filter((i) => i.category === 'sides' && i.subcategory === 'Fried Items');
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col max-w-lg mx-auto shadow-2xl relative text-navy h-[100dvh] overflow-hidden">
+    <div className="min-h-screen bg-cream flex flex-col w-full shadow-2xl relative text-navy h-[100dvh] overflow-hidden">
       {/* Solid Brand Header (Non-transparent to prevent overlapping bleed) */}
       <Header onOpenCart={() => setIsCartOpen(true)} />
 
@@ -197,7 +197,7 @@ function CustomerAppContent() {
                   {mains.length} dishes
                 </span>
               </div>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {mains.map((item) => (
                   <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} />
                 ))}
@@ -215,7 +215,7 @@ function CustomerAppContent() {
                   {soups.length} soups
                 </span>
               </div>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {soups.map((item) => (
                   <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} />
                 ))}
@@ -233,7 +233,7 @@ function CustomerAppContent() {
                   {kfc.length} items
                 </span>
               </div>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {kfc.map((item) => (
                   <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} />
                 ))}
@@ -251,7 +251,7 @@ function CustomerAppContent() {
                   {breads.length} items
                 </span>
               </div>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {breads.map((item) => (
                   <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} />
                 ))}
@@ -269,7 +269,7 @@ function CustomerAppContent() {
                   {fried.length} items
                 </span>
               </div>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {fried.map((item) => (
                   <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} />
                 ))}
@@ -324,7 +324,7 @@ function CustomerAppContent() {
       {/* Floating Bottom Cart Bar */}
       {activeTab === 'menu' && totalItemCount > 0 && !isCartOpen && (
         <div
-          className="fixed left-0 right-0 max-w-lg mx-auto px-4 z-30 pointer-events-none animate-slide-up"
+          className="fixed left-0 right-0 w-full px-4 md:px-6 z-30 pointer-events-none animate-slide-up"
           style={{
             bottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px))',
           }}
@@ -350,7 +350,7 @@ function CustomerAppContent() {
 
       {/* Fixed Bottom Navigation Bar */}
       <nav
-        className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white border-t border-cream-dark flex items-center justify-around pt-2 z-30 shadow-lg"
+        className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-cream-dark flex items-center justify-around pt-2 z-30 shadow-lg"
         style={{
           paddingBottom: 'calc(0.6rem + env(safe-area-inset-bottom, 0px))',
           paddingLeft: 'max(0.5rem, env(safe-area-inset-left, 0px))',
