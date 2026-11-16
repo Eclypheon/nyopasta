@@ -30,6 +30,14 @@ function CustomerAppContent() {
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
   const [reopenPayNowOrder, setReopenPayNowOrder] = useState<Order | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>(INITIAL_MENU_ITEMS);
+  const [isElderlyMode, setIsElderlyMode] = useState<boolean>(() => {
+    return typeof window !== 'undefined' && localStorage.getItem('nyo_elderly_mode') === 'true';
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('elderly-mode', isElderlyMode);
+    localStorage.setItem('nyo_elderly_mode', String(isElderlyMode));
+  }, [isElderlyMode]);
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const loyaltyScrollRef = useRef<HTMLDivElement | null>(null);
@@ -154,7 +162,11 @@ function CustomerAppContent() {
   return (
     <div className="min-h-screen bg-cream flex flex-col w-full shadow-2xl relative text-navy h-[100dvh] overflow-hidden">
       {/* Solid Brand Header (Non-transparent to prevent overlapping bleed) */}
-      <Header onOpenCart={() => setIsCartOpen(true)} />
+      <Header
+        onOpenCart={() => setIsCartOpen(true)}
+        isElderlyMode={isElderlyMode}
+        onToggleElderlyMode={() => setIsElderlyMode((v) => !v)}
+      />
 
       {/* Real-time Store Status Banner */}
       <StoreStatusBanner settings={storeSettings} />
@@ -166,6 +178,7 @@ function CustomerAppContent() {
           <CategorySidebar
             activeId={activeCategory}
             onSelect={scrollToCategory}
+            isElderlyMode={isElderlyMode}
           />
 
           {/* Right Scrollable Content Pane with ALL Items */}
@@ -197,9 +210,9 @@ function CustomerAppContent() {
                   {mains.length} dishes
                 </span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className={isElderlyMode ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'}>
                 {mains.map((item) => (
-                  <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} />
+                  <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} isElderlyMode={isElderlyMode} />
                 ))}
               </div>
             </section>
@@ -215,9 +228,9 @@ function CustomerAppContent() {
                   {soups.length} soups
                 </span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className={isElderlyMode ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'}>
                 {soups.map((item) => (
-                  <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} />
+                  <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} isElderlyMode={isElderlyMode} />
                 ))}
               </div>
             </section>
@@ -233,9 +246,9 @@ function CustomerAppContent() {
                   {kfc.length} items
                 </span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className={isElderlyMode ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'}>
                 {kfc.map((item) => (
-                  <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} />
+                  <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} isElderlyMode={isElderlyMode} />
                 ))}
               </div>
             </section>
@@ -251,9 +264,9 @@ function CustomerAppContent() {
                   {breads.length} items
                 </span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className={isElderlyMode ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'}>
                 {breads.map((item) => (
-                  <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} />
+                  <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} isElderlyMode={isElderlyMode} />
                 ))}
               </div>
             </section>
@@ -269,9 +282,9 @@ function CustomerAppContent() {
                   {fried.length} items
                 </span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className={isElderlyMode ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'}>
                 {fried.map((item) => (
-                  <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} />
+                  <MenuCard key={item.id} item={item} onSelect={setSelectedItemForModal} isElderlyMode={isElderlyMode} />
                 ))}
               </div>
             </section>

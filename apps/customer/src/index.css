@@ -30,3 +30,19 @@ html, body {
     font-size: 20px;
   }
 }
+
+html.elderly-mode {
+  font-size: 32px;
+}
+
+html.elderly-mode .text-\[9px\] {
+  font-size: 18px;
+}
+
+html.elderly-mode .text-\[10px\] {
+  font-size: 20px;
+}
+
+html.elderly-mode .text-\[11px\] {
+  font-size: 22px;
+}

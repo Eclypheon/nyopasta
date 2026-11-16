@@ -1,13 +1,19 @@
 import React from 'react';
-import { RefreshCw, ShoppingBag, UserCheck, UserX } from 'lucide-react';
+import { Eye, RefreshCw, ShoppingBag, UserCheck, UserX } from 'lucide-react';
 import { forceResetPwaCache } from '@nyopasta/shared';
 import { useCart } from '../context/CartContext';
 
 interface HeaderProps {
   onOpenCart: () => void;
+  isElderlyMode: boolean;
+  onToggleElderlyMode: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
+export const Header: React.FC<HeaderProps> = ({
+  onOpenCart,
+  isElderlyMode,
+  onToggleElderlyMode,
+}) => {
   const {
     totalItemCount,
     isGuest,
@@ -35,7 +41,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
 
   return (
     <header
-      className="bg-white border-b border-cream-dark px-4 sticky top-0 z-40 shadow-xs flex items-center justify-between"
+      className="bg-white border-b border-cream-dark px-4 sticky top-0 z-40 shadow-xs flex flex-wrap items-center justify-between gap-2"
       style={{
         paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))',
         paddingBottom: '0.75rem',
@@ -61,7 +67,13 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-extrabold text-base sm:text-lg text-terracotta tracking-tight leading-none">NYO PASTA</h1>
+            <h1
+              className={`font-extrabold text-terracotta tracking-tight leading-none ${
+                isElderlyMode ? 'text-xl sm:text-2xl' : 'text-base sm:text-lg'
+              }`}
+            >
+              NYO PASTA
+            </h1>
             <button
               type="button"
               onClick={handleAuthPillClick}
@@ -88,6 +100,22 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Elderly / Large Layout Toggle */}
+        <button
+          type="button"
+          onClick={onToggleElderlyMode}
+          aria-pressed={isElderlyMode}
+          title={isElderlyMode ? 'Switch to standard layout' : 'Switch to elderly large-text layout'}
+          className={`px-2.5 py-1.5 rounded-full text-xs font-extrabold flex items-center gap-1 transition-all active:scale-95 ${
+            isElderlyMode
+              ? 'bg-navy text-white shadow-sm'
+              : 'bg-cream text-navy/80 hover:text-navy border border-cream-dark'
+          }`}
+        >
+          <Eye className="w-4 h-4 shrink-0" />
+          <span>{isElderlyMode ? 'Large ON' : 'Large'}</span>
+        </button>
+
         {/* PWA Cache Reset Button */}
         <button
           type="button"
